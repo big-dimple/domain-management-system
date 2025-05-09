@@ -1,0 +1,33 @@
+classDiagram
+    class Domain {
+        +String name
+        +String type
+        +String renewalFee
+        +Date expiryDate
+        +String holder
+        +String dnsAccount
+        +String dnsManager
+        +String usage
+        +String icpLicense
+        +Boolean icpRegistration
+        +String importance
+        +String notes
+        +Date lastChecked
+        +Date registrationDate
+        +Date createdAt
+        +Date updatedAt
+    }
+    
+    class History {
+        +ObjectId domainId
+        +String action
+        +String field
+        +String oldValue
+        +String newValue
+        +String reason
+        +String operatedBy
+        +Date operatedAt
+        +Date createdAt
+    }
+    
+    Domain "1" -- "n" History : 记录历史

@@ -1,0 +1,10 @@
+flowchart TD
+    User[用户] -->|访问| Frontend[前端应用 - React]
+    Frontend -->|API请求| Backend[后端服务 - Node.js/Express]
+    Backend -->|查询/存储| Database[(MongoDB数据库)]
+    Backend -->|定时任务| CronJob[域名检查定时任务]
+    CronJob -->|调用| WhoisAPI[WHOIS API]
+    WhoisAPI -->|返回域名信息| CronJob
+    CronJob -->|更新| Database
+    Backend -->|读写| LoggingService[历史记录服务]
+    LoggingService -->|存储| Database

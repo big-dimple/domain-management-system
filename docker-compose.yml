@@ -1,0 +1,59 @@
+services:
+  # MongoDB服务
+  mongodb:
+    image: mongo:6.0
+    container_name: domain-management-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - domain-management-network
+
+  # 后端API服务
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: domain-management-backend
+    restart: always
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/domain-management?authSource=admin
+      - ALLOWED_IP=*
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    networks:
+      - domain-management-network
+
+  # 前端应用
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: domain-management-frontend
+    restart: always
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "80:80"
+    networks:
+      - domain-management-network
+
+networks:
+  domain-management-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
