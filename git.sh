@@ -36,7 +36,8 @@ check_command curl
 default_repo_name=$(basename "$(pwd)")
 
 # 询问GitHub信息
-read -p "输入GitHub用户名: " github_username
+print_message $YELLOW "请注意：GitHub用户名应该是您的登录名，不是邮箱地址"
+read -p "输入GitHub用户名(登录名，不是邮箱): " github_username
 read -p "输入GitHub个人访问令牌(PAT): " github_token
 read -p "输入仓库名称 [$default_repo_name]: " repo_name
 repo_name=${repo_name:-$default_repo_name}
@@ -151,6 +152,12 @@ git add .
 print_message $YELLOW "提交更改..."
 git commit -m "初始化提交"
 
+# 如果没有提交内容，创建一个空的提交
+if [ $? -ne 0 ]; then
+    print_message $YELLOW "创建空提交..."
+    git commit --allow-empty -m "初始化空提交"
+fi
+
 # 通过API创建GitHub仓库
 print_message $YELLOW "在GitHub上创建仓库..."
 create_repo_response=$(curl -s -X POST \
@@ -170,27 +177,46 @@ if echo "$create_repo_response" | grep -q "errors"; then
     fi
 fi
 
-# 添加远程仓库
+# 获取当前分支名
+current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ -z "$current_branch" ] || [ "$current_branch" = "HEAD" ]; then
+    # 如果当前没有分支或处于分离HEAD状态，创建并切换到main分支
+    print_message $YELLOW "创建main分支..."
+    git checkout -b main
+    current_branch="main"
+fi
+
+# 添加远程仓库（使用正确的URL格式）
 print_message $YELLOW "添加远程仓库..."
 git remote remove origin 2>/dev/null
-git remote add origin "https://${github_username}:${github_token}@github.com/${github_username}/${repo_name}.git"
+# 使用正确的URL格式
+git_url="https://${github_token}@github.com/${github_username}/${repo_name}.git"
+git remote add origin "$git_url"
 
 # 推送到GitHub
-print_message $YELLOW "推送到GitHub..."
-git push -u origin master 2>/dev/null || git push -u origin main
+print_message $YELLOW "推送到GitHub，使用当前分支: $current_branch..."
+git push -u origin "$current_branch"
 
 # 检查是否推送成功
 if [ $? -eq 0 ]; then
     print_message $GREEN "✅ 成功! 项目已上传到GitHub: https://github.com/$github_username/$repo_name"
 else
-    print_message $YELLOW "尝试使用main分支而不是master..."
-    git checkout -b main
-    git push -u origin main
-    
-    if [ $? -eq 0 ]; then
-        print_message $GREEN "✅ 成功! 项目已上传到GitHub: https://github.com/$github_username/$repo_name"
+    # 如果当前分支不是main，尝试创建并推送main分支
+    if [ "$current_branch" != "main" ]; then
+        print_message $YELLOW "尝试使用main分支..."
+        git checkout -b main
+        git push -u origin main
+        
+        if [ $? -eq 0 ]; then
+            print_message $GREEN "✅ 成功! 项目已上传到GitHub: https://github.com/$github_username/$repo_name"
+        else
+            print_message $RED "推送到GitHub失败"
+            echo "推送失败，请检查GitHub用户名和令牌是否正确"
+            exit 1
+        fi
     else
         print_message $RED "推送到GitHub失败"
+        echo "推送失败，请检查GitHub用户名和令牌是否正确"
         exit 1
     fi
 fi
