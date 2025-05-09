@@ -19,16 +19,15 @@
 - **后端**: Node.js + Express
 - **数据库**: MongoDB
 - **容器化**: Docker + Docker Compose
-- **服务器**: Nginx
 
 ## 快速开始
 
 ### 前提条件
 
-- [Docker](https://www.docker.com/get-started) 和 [Docker Compose](https://docs.docker.com/compose/install/)
-- 服务器或本地环境
+- Docker和Docker Compose
+- 确保端口8080、3001和27017未被占用
 
-### 安装步骤
+### 部署步骤
 
 1. **克隆仓库**
 
@@ -37,49 +36,78 @@ git clone https://github.com/your-username/domain-management-system.git
 cd domain-management-system
 ```
 
-2. **配置环境变量**
+2. **启动服务**
 
 ```bash
-cp .env.example .env
+docker compose up -d
 ```
 
-编辑 `.env` 文件，设置MongoDB用户名密码和IP白名单等信息。
+3. **访问系统**
 
-3. **启动服务**
+访问 `http://your-server-ip:8080`
+
+## 在Linux上安装Docker和部署
+
+无论是Ubuntu、CentOS还是其他Linux发行版，都可以使用以下简单步骤部署：
+
+### 1. 安装Docker和Docker Compose
 
 ```bash
-docker-compose up -d
+# 更新系统包
+sudo apt update && sudo apt upgrade -y   # Ubuntu/Debian
+# 或
+sudo yum update -y                       # CentOS/RHEL
+
+# 安装Docker
+curl -fsSL https://get.docker.com | sh
+
+# 启动Docker并设置开机自启
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# 验证Docker安装成功
+docker --version
+docker compose version
 ```
 
-4. **访问系统**
-
-打开浏览器访问 `http://localhost` 或服务器IP地址。
-
-### 本地开发环境
-
-如果希望在本地进行开发：
-
-1. **启动MongoDB**
+### 2. 克隆项目并部署
 
 ```bash
-docker-compose up -d mongodb
+# 克隆项目
+git clone https://github.com/your-username/domain-management-system.git
+cd domain-management-system
+
+# 设置MongoDB凭据
+cat > .env << EOF
+# MongoDB连接信息
+MONGO_USER=admin
+MONGO_PASSWORD=your_secure_password
+MONGODB_URI=mongodb://admin:your_secure_password@mongodb:27017/domain-management?authSource=admin
+
+# 服务器配置
+PORT=3001
+NODE_ENV=production
+
+# IP白名单配置
+ALLOWED_IP=*
+EOF
+
+# 复制环境配置到后端目录
+mkdir -p backend
+cp .env backend/.env
+
+# 启动服务
+docker compose up -d
 ```
 
-2. **启动后端**
+### 3. 验证部署
 
 ```bash
-cd backend
-npm install
-npm run dev
+# 查看容器状态
+docker compose ps
 ```
 
-3. **启动前端**
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
+系统应该在约1-2分钟内完成初始化并可访问。
 
 ## 使用指南
 
@@ -112,165 +140,66 @@ npm run dev
 - 系统每周自动检查域名到期日期
 - 可手动触发域名检查
 
-## CentOS 7.9 安装指南
-
-在CentOS 7.9上部署系统：
-
-1. **安装Docker和Docker Compose**
-
-```bash
-# 安装必要的依赖
-sudo yum install -y yum-utils device-mapper-persistent-data lvm2
-
-# 添加Docker源
-sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-
-# 安装Docker
-sudo yum install -y docker-ce docker-ce-cli containerd.io
-
-# 启动Docker
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# 安装Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-```
-
-2. **克隆和配置**
-
-```bash
-git clone https://github.com/your-username/domain-management-system.git
-cd domain-management-system
-cp .env.example .env
-```
-
-编辑 `.env` 文件，配置环境变量。
-
-3. **启动系统**
-
-```bash
-docker-compose up -d
-```
-
 ## 系统维护
+
+### 常用Docker命令
+
+```bash
+# 停止服务
+docker compose down
+
+# 启动服务
+docker compose up -d
+
+# 重新构建并启动（代码有更新时）
+docker compose build
+docker compose up -d
+
+# 查看日志
+docker compose logs
+docker compose logs frontend
+docker compose logs backend
+
+# 重启特定服务
+docker compose restart backend
+```
 
 ### 备份数据
 
-备份MongoDB数据：
-
 ```bash
+# 备份MongoDB数据
 docker exec domain-management-mongodb sh -c 'mongodump --username=${MONGO_USER} --password=${MONGO_PASSWORD} --authenticationDatabase=admin --db=domain-management --out=/tmp/backup'
 docker cp domain-management-mongodb:/tmp/backup ./mongo_backup
 ```
 
-### 更新系统
-
-```bash
-# 拉取最新代码
-git pull
-
-# 重新构建和启动容器
-docker-compose down
-docker-compose build
-docker-compose up -d
-```
-
-### 查看日志
-
-```bash
-# 查看所有容器日志
-docker-compose logs
-
-# 查看特定服务日志
-docker-compose logs backend
-docker-compose logs frontend
-docker-compose logs mongodb
-```
-
-## 自定义和扩展
-
-### 修改Nginx配置
-
-编辑 `nginx/nginx.conf` 文件，然后重新构建Nginx容器：
-
-```bash
-docker-compose build nginx
-docker-compose up -d nginx
-```
-
-### 修改WHOIS检查频率
-
-编辑 `backend/src/index.js` 中的cron表达式：
-
-```javascript
-// 默认每周一凌晨3点执行
-cron.schedule('0 3 * * 1', async () => { ... });
-
-// 修改为每天凌晨3点执行
-cron.schedule('0 3 * * *', async () => { ... });
-```
-
-然后重新构建后端容器：
-
-```bash
-docker-compose build backend
-docker-compose up -d backend
-```
-
 ## 常见问题
+
+### 端口冲突
+
+如果8080端口已被占用，可以在docker-compose.yml中修改前端服务的端口映射：
+
+```yaml
+ports:
+  - "8081:80"  # 将8080改为其他未被占用的端口
+```
 
 ### MongoDB连接失败
 
-检查 `.env` 文件中的MongoDB连接信息是否正确，确保MongoDB容器已启动：
+检查.env文件中的MongoDB连接信息是否正确，确保MongoDB容器已启动：
 
 ```bash
-docker-compose ps
-```
-
-### 无法访问系统
-
-检查Nginx容器是否正常运行，确认服务器防火墙是否开放80端口：
-
-```bash
-# 检查容器状态
-docker-compose ps
-
-# 检查防火墙规则
-sudo firewall-cmd --list-all
-
-# 如需开放80端口
-sudo firewall-cmd --permanent --add-port=80/tcp
-sudo firewall-cmd --reload
+docker compose ps
 ```
 
 ### WHOIS查询失败
 
-某些域名注册商可能限制WHOIS查询频率，可以调整 `backend/src/cron/domainChecker.js` 中的延迟时间：
+某些域名注册商可能限制WHOIS查询频率，可以调整`backend/src/cron/domainChecker.js`中的延迟时间：
 
 ```javascript
 // 修改延迟时间（毫秒）
 await new Promise(resolve => setTimeout(resolve, 5000)); // 改为5秒
 ```
 
-## 贡献指南
-
-欢迎贡献代码、报告问题或提出新功能建议。请遵循以下步骤：
-
-1. Fork仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建Pull Request
-
-## 许可证
-
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
 
 ## 联系方式
-
-如有问题或建议，请通过以下方式联系：
-
-- 邮箱: your-email@example.com
-- GitHub Issues: [https://github.com/your-username/domain-management-system/issues](https://github.com/your-username/domain-management-system/issues)
+helloworld
