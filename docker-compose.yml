@@ -1,0 +1,60 @@
+version: '3.8' # Docker Compose 文件版本
+
+services:
+  # 前端服务 (Nginx + React 构建产物)
+  frontend:
+    build:
+      context: ./frontend # Dockerfile 所在目录
+      dockerfile: Dockerfile # Dockerfile 文件名
+    ports:
+      - "8080:80" # 将宿主机的8080端口映射到容器的80端口
+    depends_on:
+      - backend # 依赖后端服务先启动 (仅控制启动顺序，不保证后端完全可用)
+    restart: unless-stopped # 除非手动停止，否则容器会自动重启
+    networks:
+      - domain-management-network # 加入自定义网络
+
+  # 后端服务 (Node.js API)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001" # 将宿主机的3001端口映射到容器的3001端口
+    env_file:
+      - .env # 从项目根目录的 .env 文件加载环境变量
+    depends_on:
+      - mongodb # 依赖MongoDB服务
+    restart: unless-stopped
+    volumes:
+      - ./backend/logs:/app/logs # 将宿主机的 backend/logs 目录映射到容器的 /app/logs，用于持久化日志
+      - ./backend/backups:/app/backups # 将宿主机的 backend/backups 目录映射到容器的 /app/backups，用于持久化备份
+    networks:
+      - domain-management-network
+
+  # MongoDB数据库服务
+  mongodb:
+    image: mongo:5.0 # 使用官方 MongoDB 5.0 镜像
+    container_name: domain-management-mongodb # 自定义容器名称
+    environment:
+      # 从 .env 文件读取 MongoDB 的 root 用户名和密码
+      # 这些变量由 Docker Compose 自动从项目根目录的 .env 文件注入
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    volumes:
+      - mongo-data:/data/db # 使用命名数据卷 mongo-data 持久化数据库文件
+    ports:
+      - "27017:27017" # 将宿主机的27017端口映射到容器的27017端口
+    restart: unless-stopped
+    networks:
+      - domain-management-network
+
+# 数据卷定义
+volumes:
+  mongo-data: # 定义一个名为 mongo-data 的本地数据卷
+    driver: local
+
+# 网络定义
+networks:
+  domain-management-network: # 定义一个名为 domain-management-network 的桥接网络
+    driver: bridge

@@ -1,0 +1,37 @@
+{
+  "name": "domain-management-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@headlessui/react": "^1.7.15",
+    "@heroicons/react": "^2.0.18",
+    "axios": "^1.4.0",
+    "chart.js": "^4.3.0",
+    "dayjs": "^1.11.8",
+    "file-saver": "^2.0.5",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.45.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.13.0",
+    "react-table": "^7.8.0",
+    "zustand": "^4.3.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.10",
+    "@types/react": "^18.2.12",
+    "@types/react-dom": "^18.2.5",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2",
+    "vite": "^4.3.9"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

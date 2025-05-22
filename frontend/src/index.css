@@ -1,0 +1,23 @@
+@tailwind base;      /* Tailwind CSS 基础样式 (重置、预设等) */
+@tailwind components; /* Tailwind CSS 组件类 */
+@tailwind utilities;  /* Tailwind CSS 工具类 */
+
+/* 你可以在这里添加全局自定义样式 */
+/* 例如:
+body {
+  font-family: 'Inter', sans-serif;
+}
+*/
+
+/* 分页按钮样式 */
+.pagination-button {
+  @apply relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-10 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500;
+}
+
+.pagination-button:disabled {
+  @apply opacity-50 cursor-not-allowed hover:bg-white;
+}
+
+.pagination-button-active {
+  @apply z-10 bg-indigo-50 border-indigo-500 text-indigo-600;
+}
