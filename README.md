@@ -50,7 +50,7 @@
 ```bash
 # 1. 克隆项目
 git clone https://github.com/big-dimple/domain-management-system.git
-# 直接下载也ok: https://github.com/big-dimple/domain-management-system/archive/refs/heads/main.zip
+#wget https://github.com/big-dimple/domain-management-system/archive/refs/heads/master.zip
 cd domain-management-system
 
 # 2. 配置环境变量（根据需要修改）
