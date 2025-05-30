@@ -328,28 +328,57 @@ export const HelpPage = () => {
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-3">🤖 配置机器人告警</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                      <h4 className="font-medium text-blue-900 mb-2">通用配置流程</h4>
+                      <p className="text-sm text-blue-800 mb-2">所有平台的配置流程基本相同：</p>
+                      <ol className="text-sm text-blue-800 space-y-1">
+                        <li>1. 进入对应平台的群聊设置</li>
+                        <li>2. 找到机器人/群助手功能</li>
+                        <li>3. 创建自定义机器人</li>
+                        <li>4. 获取Webhook地址</li>
+                        <li>5. 在系统中添加告警配置</li>
+                      </ol>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="border border-gray-200 rounded-lg p-4">
-                        <h4 className="font-medium mb-2 text-blue-600">钉钉机器人配置</h4>
-                        <ol className="text-sm text-gray-600 space-y-2">
-                          <li>1. 进入钉钉群设置</li>
-                          <li>2. 点击"智能群助手"</li>
-                          <li>3. 添加机器人 → 自定义</li>
-                          <li>4. 设置机器人名称</li>
-                          <li>5. 复制Webhook地址</li>
-                          <li>6. 在系统中添加配置</li>
-                        </ol>
+                        <h4 className="font-medium mb-3 text-blue-600 flex items-center">
+                          <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                          钉钉机器人
+                        </h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• 群设置 → 智能群助手</li>
+                          <li>• 添加机器人 → 自定义</li>
+                          <li>• 支持关键词验证</li>
+                          <li>• 支持IP白名单</li>
+                        </ul>
                       </div>
+                      
                       <div className="border border-gray-200 rounded-lg p-4">
-                        <h4 className="font-medium mb-2 text-green-600">企业微信机器人配置</h4>
-                        <ol className="text-sm text-gray-600 space-y-2">
-                          <li>1. 进入企业微信群</li>
-                          <li>2. 点击群设置</li>
-                          <li>3. 群机器人 → 添加</li>
-                          <li>4. 创建新机器人</li>
-                          <li>5. 复制Webhook地址</li>
-                          <li>6. 在系统中添加配置</li>
-                        </ol>
+                        <h4 className="font-medium mb-3 text-green-600 flex items-center">
+                          <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                          企业微信机器人
+                        </h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• 群设置 → 群机器人</li>
+                          <li>• 添加机器人 → 创建</li>
+                          <li>• 支持@指定成员</li>
+                          <li>• 支持消息加密</li>
+                        </ul>
+                      </div>
+
+                      <div className="border border-gray-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-3 text-purple-600 flex items-center">
+                          <span className="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
+                          飞书机器人
+                        </h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• 群设置 → 群机器人</li>
+                          <li>• 添加机器人 → 自定义</li>
+                          <li>• 支持签名验证</li>
+                          <li>• 支持富文本消息</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
