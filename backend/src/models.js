@@ -78,7 +78,7 @@ const scanTaskSchema = new mongoose.Schema({
 const alertConfigSchema = new mongoose.Schema({
   type: { 
     type: String, 
-    enum: ['dingtalk', 'wechat', 'email'],
+    enum: ['dingtalk', 'wechat', 'feishu', 'email'],
     required: true
   },
   name: { type: String, required: true },

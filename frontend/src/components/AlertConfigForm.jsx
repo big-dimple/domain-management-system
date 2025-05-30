@@ -47,6 +47,20 @@ export const AlertConfigForm = ({ config, onSave, onCancel }) => {
     }
   };
 
+  // 获取Webhook配置提示信息
+  const getWebhookTip = () => {
+    switch (formData.type) {
+      case 'dingtalk':
+        return '钉钉群设置 → 智能群助手 → 添加机器人 → 自定义 → 获取Webhook';
+      case 'wechat':
+        return '企业微信群 → 群设置 → 群机器人 → 添加 → 获取Webhook';
+      case 'feishu':
+        return '飞书群聊 → 设置 → 群机器人 → 添加机器人 → 自定义机器人 → 获取Webhook';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content w-full max-w-lg p-6">
@@ -65,6 +79,7 @@ export const AlertConfigForm = ({ config, onSave, onCancel }) => {
               >
                 <option value="dingtalk">钉钉机器人</option>
                 <option value="wechat">企业微信机器人</option>
+                <option value="feishu">飞书机器人</option>
               </select>
             </div>
             
@@ -89,9 +104,7 @@ export const AlertConfigForm = ({ config, onSave, onCancel }) => {
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                {formData.type === 'dingtalk' 
-                  ? '钉钉群设置 → 智能群助手 → 添加机器人 → 自定义 → 获取Webhook'
-                  : '企业微信群 → 群设置 → 群机器人 → 添加 → 获取Webhook'}
+                {getWebhookTip()}
               </p>
             </div>
             

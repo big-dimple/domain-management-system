@@ -110,6 +110,16 @@ export const AlertsPage = () => {
     }
   };
 
+  // 获取告警类型显示文本和样式
+  const getAlertTypeDisplay = (type) => {
+    const typeMap = {
+      'dingtalk': { text: '钉钉', bg: 'bg-blue-100', color: 'text-blue-800' },
+      'wechat': { text: '企业微信', bg: 'bg-green-100', color: 'text-green-800' },
+      'feishu': { text: '飞书', bg: 'bg-purple-100', color: 'text-purple-800' }
+    };
+    return typeMap[type] || { text: type, bg: 'bg-gray-100', color: 'text-gray-800' };
+  };
+
   return (
     <div className="p-6">
       {/* 页面标题 */}
@@ -235,80 +245,81 @@ export const AlertsPage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {alertConfigs.map(config => (
-                    <div key={config._id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-medium text-gray-900">{config.name}</h4>
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              config.type === 'dingtalk' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                            }`}>
-                              {config.type === 'dingtalk' ? '钉钉' : '企业微信'}
-                            </span>
-                            {config.enabled ? (
-                              <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                                已启用
+                  {alertConfigs.map(config => {
+                    const typeDisplay = getAlertTypeDisplay(config.type);
+                    return (
+                      <div key={config._id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="font-medium text-gray-900">{config.name}</h4>
+                              <span className={`px-2 py-1 rounded text-xs ${typeDisplay.bg} ${typeDisplay.color}`}>
+                                {typeDisplay.text}
                               </span>
-                            ) : (
-                              <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
-                                已禁用
-                              </span>
-                            )}
+                              {config.enabled ? (
+                                <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                                  已启用
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                                  已禁用
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <p>告警内容：{config.alertTypes.includes('both') ? '域名 + SSL证书' : config.alertTypes[0] === 'domain' ? '仅域名' : '仅SSL证书'}</p>
+                              <p>域名提前告警：{config.domainDaysBeforeExpiry}天</p>
+                              <p>SSL提前告警：{config.sslDaysBeforeExpiry}天</p>
+                              {config.lastAlertTime && (
+                                <p>最后告警：{dayjs(config.lastAlertTime).format('YYYY-MM-DD HH:mm')}</p>
+                              )}
+                            </div>
                           </div>
                           
-                          <div className="text-sm text-gray-600 space-y-1">
-                            <p>告警内容：{config.alertTypes.includes('both') ? '域名 + SSL证书' : config.alertTypes[0] === 'domain' ? '仅域名' : '仅SSL证书'}</p>
-                            <p>域名提前告警：{config.domainDaysBeforeExpiry}天</p>
-                            <p>SSL提前告警：{config.sslDaysBeforeExpiry}天</p>
-                            {config.lastAlertTime && (
-                              <p>最后告警：{dayjs(config.lastAlertTime).format('YYYY-MM-DD HH:mm')}</p>
-                            )}
+                          <div className="flex items-center space-x-2 ml-4">
+                            <button
+                              onClick={() => { setEditingConfig(config); setShowAlertForm(true); }}
+                              className="text-blue-500 hover:text-blue-700 text-sm"
+                            >
+                              编辑
+                            </button>
+                            <button
+                              onClick={() => handleDeleteConfig(config._id)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              删除
+                            </button>
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-2 ml-4">
-                          <button
-                            onClick={() => { setEditingConfig(config); setShowAlertForm(true); }}
-                            className="text-blue-500 hover:text-blue-700 text-sm"
-                          >
-                            编辑
-                          </button>
-                          <button
-                            onClick={() => handleDeleteConfig(config._id)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* 告警历史 */}
-                      {config.alertHistory && config.alertHistory.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">最近告警记录</h5>
-                          <div className="space-y-1">
-                            {config.alertHistory.slice(-3).reverse().map((history, idx) => (
-                              <div key={idx} className="flex items-center justify-between text-sm">
-                                <span className="text-gray-600">
-                                  {dayjs(history.sentAt).format('MM-DD HH:mm')}
-                                </span>
-                                {history.success ? (
-                                  <span className="text-green-600">
-                                    成功发送 {history.itemCount} 个提醒
+                        {/* 告警历史 */}
+                        {config.alertHistory && config.alertHistory.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">最近告警记录</h5>
+                            <div className="space-y-1">
+                              {config.alertHistory.slice(-3).reverse().map((history, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-600">
+                                    {dayjs(history.sentAt).format('MM-DD HH:mm')}
                                   </span>
-                                ) : (
-                                  <span className="text-red-600">
-                                    发送失败: {history.error}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
+                                  {history.success ? (
+                                    <span className="text-green-600">
+                                      成功发送 {history.itemCount} 个提醒
+                                    </span>
+                                  ) : (
+                                    <span className="text-red-600">
+                                      发送失败: {history.error}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

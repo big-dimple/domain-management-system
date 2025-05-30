@@ -59,6 +59,30 @@ async function sendWeChatAlert(webhook, content) {
   }
 }
 
+// 发送飞书告警
+async function sendFeishuAlert(webhook, content) {
+  const data = {
+    msg_type: 'text',
+    content: {
+      text: content
+    }
+  };
+  
+  try {
+    const response = await axios.post(webhook, data);
+    // 飞书机器人成功响应通常返回 {"code":0} 或者 {"StatusCode":0}
+    if (response.data.code === 0 || response.data.StatusCode === 0 || response.status === 200) {
+      logAlert(`飞书告警发送成功`);
+      return { success: true };
+    } else {
+      throw new Error(`飞书API错误: ${response.data.msg || response.data.message || '未知错误'}`);
+    }
+  } catch (error) {
+    logAlert(`飞书告警发送失败: ${error.message}`, 'error');
+    throw error;
+  }
+}
+
 // 构建域名告警内容
 function buildDomainAlertContent(domains) {
   const groups = {
@@ -234,6 +258,8 @@ async function checkAndSendAlerts() {
             result = await sendDingTalkAlert(config.webhook, alertContent);
           } else if (config.type === 'wechat') {
             result = await sendWeChatAlert(config.webhook, alertContent);
+          } else if (config.type === 'feishu') {
+            result = await sendFeishuAlert(config.webhook, alertContent);
           }
           
           // 更新告警历史
@@ -295,6 +321,8 @@ async function testAlertWebhook(type, webhook) {
       await sendDingTalkAlert(webhook, testContent);
     } else if (type === 'wechat') {
       await sendWeChatAlert(webhook, testContent);
+    } else if (type === 'feishu') {
+      await sendFeishuAlert(webhook, testContent);
     }
     
     return { success: true, message: '测试消息发送成功' };
