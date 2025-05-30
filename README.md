@@ -52,7 +52,7 @@
 git clone https://github.com/big-dimple/domain-management-system.git
 cd domain-management-system
 
-# 2. 一键启动
+# 2. 一键启动，请先手动装一下docker
 ./start.sh
 
 # 3. 访问系统
@@ -67,7 +67,7 @@ git clone https://github.com/big-dimple/domain-management-system.git
 #科学上网#  wget https://github.com/big-dimple/domain-management-system/archive/refs/heads/master.zip
 cd domain-management-system
 
-# 2. 国内优化启动 (自动配置镜像加速)
+# 2. 国内优化启动 (docker,npm,pip,各类镜像源)idc建议去渡渡鸟找个源或者去云厂商自建一个docker代理对自己放白名单使用
 ./build-for-china.sh
 
 ```
