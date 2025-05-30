@@ -27,7 +27,6 @@ Thumbs.db
 *.bak
 
 # 环境文件
-.env
 .env.local
 .env.development
 .env.test

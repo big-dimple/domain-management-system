@@ -82,7 +82,6 @@ cd domain-management-system
 ### 🎛️ 可选配置
 ```bash
 # 修改环境变量 (可选)
-cp .env.example .env
 vim .env
 
 # 自定义端口、数据库密码等
