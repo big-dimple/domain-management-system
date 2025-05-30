@@ -46,7 +46,7 @@
 
 ## ⚡ 快速开始
 
-### 🌍 海外服务器 (推荐)
+### 🌍 海外服务器 (官方的镜像源)
 ```bash
 # 1. 克隆项目
 git clone https://github.com/big-dimple/domain-management-system.git
