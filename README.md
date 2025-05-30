@@ -67,7 +67,7 @@ git clone https://github.com/big-dimple/domain-management-system.git
 #科学上网#  wget https://github.com/big-dimple/domain-management-system/archive/refs/heads/master.zip
 cd domain-management-system
 
-# 2. 国内优化启动 (docker,npm,pip,各类镜像源)idc可渡渡鸟找个源或自建docker代理
+# 2. 国内启动 (腾讯云可直接运行),请修改registry-mirrors后运行
 ./build-for-china.sh
 
 ```
