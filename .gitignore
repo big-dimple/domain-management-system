@@ -1,0 +1,45 @@
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 编译文件
+*.o
+*.pyc
+*.class
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 临时文件
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
+
+# 环境文件
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# 依赖目录
+node_modules/
+vendor/
+/venv/
+/.venv/
+/__pycache__/
+/dist/
+/build/
+/.idea/
+/.vscode/

@@ -1,0 +1,18 @@
+#!/bin/bash
+echo "启动域名管理系统v3.0..."
+./dc.sh up -d
+echo ""
+echo "系统已启动！"
+echo "访问地址: http://localhost:8080"
+echo ""
+echo "新版特性:"
+echo "✅ 现代化UI设计 - Cloudflare风格"
+echo "✅ SSL证书管理 - 支持TXT导入导出"
+echo "✅ 左侧导航栏 - 更好的信息架构"
+echo "✅ 统一告警中心 - 域名+SSL集成"
+echo "✅ 数据可视化 - 仪表盘概览"
+echo ""
+echo "定时任务:"
+echo "- 域名扫描: 每天凌晨4:30"
+echo "- SSL扫描: 每天凌晨5:00"
+echo "- 到期告警: 每天中午12:00"
