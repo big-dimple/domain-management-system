@@ -67,7 +67,7 @@ git clone https://github.com/big-dimple/domain-management-system.git
 #科学上网#  wget https://github.com/big-dimple/domain-management-system/archive/refs/heads/master.zip
 cd domain-management-system
 
-# 2. 国内优化启动 (docker,npm,pip,各类镜像源)idc建议去渡渡鸟找个源或者去云厂商自建一个docker代理对自己放白名单使用
+# 2. 国内优化启动 (docker,npm,pip,各类镜像源)idc可渡渡鸟找个源或自建docker代理
 ./build-for-china.sh
 
 ```
@@ -125,7 +125,7 @@ vim .env
 1. 启动系统后访问 `http://你的IP:8080`
 2. 在"域名管理"页面添加域名或批量导入CSV
 3. 在"SSL监控"页面添加需要监控的域名
-4. 在"告警中心"配置钉钉/企业微信通知
+4. 在"告警中心"配置通知
 
 ### 2. 批量导入域名
 - 支持CSV格式，表头必须包含：域名、到期日期
@@ -196,26 +196,6 @@ vim .env
 
 ## 🚨 故障排除
 
-### 常见问题
-
-**Q: 启动失败，端口被占用？**
-```bash
-# 检查端口占用
-netstat -tlnp | grep :8080
-netstat -tlnp | grep :3001
-
-# 修改端口 (编辑.env文件)
-vim .env
-```
-
-**Q: 域名扫描失败？**
-```bash
-# 测试域名扫描功能
-./test.sh domain baidu.com
-
-# 检查网络连接
-ping 8.8.8.8
-```
 
 **Q: 告警发送失败？**
 ```bash
@@ -256,7 +236,7 @@ A: 支持所有提供WHOIS查询的域名后缀（.com/.cn/.net等主流后缀�
 A: 经测试可稳定管理1000+域名，取决于服务器配置
 
 **Q: 数据安全吗？**
-A: 所有数据存储在本地MongoDB，支持定期备份，不依赖外部服务
+A: 所有数据持久化存储在本地MongoDB，支持定期备份，不依赖外部服务
 
 **Q: 中国大陆网络环境如何使用？**
 A: 使用 `./build-for-china.sh` 启动，自动配置镜像加速和国内源
