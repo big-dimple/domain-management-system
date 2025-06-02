@@ -53,16 +53,18 @@ function parseCSVLine(line, delimiter = ',') {
   return result;
 }
 
-// 批量扫描域名
+// 批量扫描域名函数 - 修复版本
 async function batchScanDomains(taskId) {
-  const task = await ScanTask.findOne({ taskId });
-  if (!task) {
-    logScan(`任务不存在: ${taskId}`, 'error');
-    return;
-  }
+  logScan(`开始执行批量域名扫描任务: ${taskId}`);
   
   try {
-    // 更新任务状态
+    const task = await ScanTask.findOne({ taskId });
+    if (!task) {
+      logScan(`任务不存在: ${taskId}`, 'error');
+      return;
+    }
+    
+    // 更新任务状态为运行中
     task.status = 'running';
     task.startTime = new Date();
     await task.save();
@@ -72,16 +74,26 @@ async function batchScanDomains(taskId) {
     task.totalItems = domains.length;
     await task.save();
     
-    logScan(`开始扫描任务 ${taskId}，共 ${domains.length} 个域名`);
+    logScan(`共找到 ${domains.length} 个域名需要扫描`);
+    
+    if (domains.length === 0) {
+      task.status = 'completed';
+      task.endTime = new Date();
+      await task.save();
+      logScan('没有域名需要扫描，任务完成');
+      return;
+    }
     
     // 创建并发限制
-    const limit = pLimit(parseInt(process.env.SCAN_BATCH_SIZE) || 5);
+    const batchSize = parseInt(process.env.SCAN_BATCH_SIZE) || 5;
+    const limit = pLimit(batchSize);
+    logScan(`使用并发数: ${batchSize}`);
     
     // 批量扫描
     const scanPromises = domains.map(domain => 
       limit(async () => {
         try {
-          logScan(`扫描域名: ${domain.domainName}`);
+          logScan(`开始扫描域名: ${domain.domainName}`);
           
           const scanResult = await scanDomainExpiry(domain.domainName);
           
@@ -96,10 +108,15 @@ async function batchScanDomains(taskId) {
             autoScanned: true
           });
           
-          task.scannedItems++;
-          task.successCount++;
+          task.scannedItems = (task.scannedItems || 0) + 1;
+          task.successCount = (task.successCount || 0) + 1;
           
           logScan(`域名 ${domain.domainName} 扫描成功，到期日期: ${dayjs(scanResult.expiryDate).format('YYYY-MM-DD')}`);
+          
+          // 每扫描10个域名保存一次进度
+          if (task.scannedItems % 10 === 0) {
+            await task.save();
+          }
           
         } catch (error) {
           logScan(`域名 ${domain.domainName} 扫描失败: ${error.message}`, 'error');
@@ -111,17 +128,21 @@ async function batchScanDomains(taskId) {
             scanError: error.message
           });
           
-          task.scannedItems++;
-          task.failureCount++;
+          task.scannedItems = (task.scannedItems || 0) + 1;
+          task.failureCount = (task.failureCount || 0) + 1;
+          
+          if (!task.errors) {
+            task.errors = [];
+          }
           task.errors.push({
             item: domain.domainName,
             error: error.message
           });
-        }
-        
-        // 定期保存进度
-        if (task.scannedItems % 10 === 0) {
-          await task.save();
+          
+          // 每处理10个域名保存一次进度
+          if (task.scannedItems % 10 === 0) {
+            await task.save();
+          }
         }
       })
     );
@@ -134,30 +155,52 @@ async function batchScanDomains(taskId) {
     task.endTime = new Date();
     await task.save();
     
-    logScan(`扫描任务 ${taskId} 完成。成功: ${task.successCount}，失败: ${task.failureCount}`);
+    logScan(`批量域名扫描任务 ${taskId} 完成。成功: ${task.successCount}，失败: ${task.failureCount}`);
     
     // 更新所有域名的续费建议
-    const allDomains = await Domain.find();
-    await evaluateAllDomains(allDomains);
+    try {
+      const allDomains = await Domain.find();
+      await evaluateAllDomains(allDomains);
+      logScan('域名续费建议更新完成');
+    } catch (evalError) {
+      logScan(`续费建议更新失败: ${evalError.message}`, 'error');
+    }
     
   } catch (error) {
-    logScan(`扫描任务 ${taskId} 异常: ${error.message}`, 'error');
-    task.status = 'failed';
-    task.endTime = new Date();
-    await task.save();
+    logScan(`批量域名扫描任务 ${taskId} 执行异常: ${error.message}`, 'error');
+    
+    try {
+      const task = await ScanTask.findOne({ taskId });
+      if (task) {
+        task.status = 'failed';
+        task.endTime = new Date();
+        if (!task.errors) {
+          task.errors = [];
+        }
+        task.errors.push({
+          item: 'system',
+          error: error.message
+        });
+        await task.save();
+      }
+    } catch (saveError) {
+      logScan(`保存任务失败状态时出错: ${saveError.message}`, 'error');
+    }
   }
 }
 
-// 批量扫描SSL证书
+// 批量扫描SSL证书函数 - 修复版本
 async function batchScanSSLCertificates(taskId) {
-  const task = await ScanTask.findOne({ taskId });
-  if (!task) {
-    logSSL(`任务不存在: ${taskId}`, 'error');
-    return;
-  }
+  logSSL(`开始执行批量SSL证书扫描任务: ${taskId}`);
   
   try {
-    // 更新任务状态
+    const task = await ScanTask.findOne({ taskId });
+    if (!task) {
+      logSSL(`任务不存在: ${taskId}`, 'error');
+      return;
+    }
+    
+    // 更新任务状态为运行中
     task.status = 'running';
     task.startTime = new Date();
     await task.save();
@@ -167,16 +210,26 @@ async function batchScanSSLCertificates(taskId) {
     task.totalItems = certificates.length;
     await task.save();
     
-    logSSL(`开始SSL扫描任务 ${taskId}，共 ${certificates.length} 个证书`);
+    logSSL(`共找到 ${certificates.length} 个SSL证书需要扫描`);
+    
+    if (certificates.length === 0) {
+      task.status = 'completed';
+      task.endTime = new Date();
+      await task.save();
+      logSSL('没有SSL证书需要扫描，任务完成');
+      return;
+    }
     
     // 创建并发限制
-    const limit = pLimit(parseInt(process.env.SSL_SCAN_BATCH_SIZE) || 3);
+    const batchSize = parseInt(process.env.SSL_SCAN_BATCH_SIZE) || 3;
+    const limit = pLimit(batchSize);
+    logSSL(`使用并发数: ${batchSize}`);
     
     // 批量扫描
     const scanPromises = certificates.map(cert => 
       limit(async () => {
         try {
-          logSSL(`扫描SSL证书: ${cert.domain}`);
+          logSSL(`开始扫描SSL证书: ${cert.domain}`);
           
           const scanResult = await checkSSLCertificate(cert.domain);
           
@@ -187,10 +240,15 @@ async function batchScanSSLCertificates(taskId) {
             checkError: null
           });
           
-          task.scannedItems++;
-          task.successCount++;
+          task.scannedItems = (task.scannedItems || 0) + 1;
+          task.successCount = (task.successCount || 0) + 1;
           
           logSSL(`SSL证书 ${cert.domain} 扫描成功，剩余${scanResult.daysRemaining}天`);
+          
+          // 每扫描5个证书保存一次进度
+          if (task.scannedItems % 5 === 0) {
+            await task.save();
+          }
           
         } catch (error) {
           logSSL(`SSL证书 ${cert.domain} 扫描失败: ${error.message}`, 'error');
@@ -202,17 +260,21 @@ async function batchScanSSLCertificates(taskId) {
             checkError: error.message
           });
           
-          task.scannedItems++;
-          task.failureCount++;
+          task.scannedItems = (task.scannedItems || 0) + 1;
+          task.failureCount = (task.failureCount || 0) + 1;
+          
+          if (!task.errors) {
+            task.errors = [];
+          }
           task.errors.push({
             item: cert.domain,
             error: error.message
           });
-        }
-        
-        // 定期保存进度
-        if (task.scannedItems % 5 === 0) {
-          await task.save();
+          
+          // 每处理5个证书保存一次进度
+          if (task.scannedItems % 5 === 0) {
+            await task.save();
+          }
         }
       })
     );
@@ -225,17 +287,37 @@ async function batchScanSSLCertificates(taskId) {
     task.endTime = new Date();
     await task.save();
     
-    logSSL(`SSL扫描任务 ${taskId} 完成。成功: ${task.successCount}，失败: ${task.failureCount}`);
+    logSSL(`批量SSL证书扫描任务 ${taskId} 完成。成功: ${task.successCount}，失败: ${task.failureCount}`);
     
     // 更新所有证书的状态
-    const allCertificates = await SSLCertificate.find();
-    await evaluateAllSSLCertificates(allCertificates);
+    try {
+      const allCertificates = await SSLCertificate.find();
+      await evaluateAllSSLCertificates(allCertificates);
+      logSSL('SSL证书状态评估更新完成');
+    } catch (evalError) {
+      logSSL(`SSL证书状态评估更新失败: ${evalError.message}`, 'error');
+    }
     
   } catch (error) {
-    logSSL(`SSL扫描任务 ${taskId} 异常: ${error.message}`, 'error');
-    task.status = 'failed';
-    task.endTime = new Date();
-    await task.save();
+    logSSL(`批量SSL证书扫描任务 ${taskId} 执行异常: ${error.message}`, 'error');
+    
+    try {
+      const task = await ScanTask.findOne({ taskId });
+      if (task) {
+        task.status = 'failed';
+        task.endTime = new Date();
+        if (!task.errors) {
+          task.errors = [];
+        }
+        task.errors.push({
+          item: 'system',
+          error: error.message
+        });
+        await task.save();
+      }
+    } catch (saveError) {
+      logSSL(`保存任务失败状态时出错: ${saveError.message}`, 'error');
+    }
   }
 }
 
@@ -297,9 +379,6 @@ router.get('/domains', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-
-
 
 router.post('/domains', async (req, res) => {
   try {
@@ -890,7 +969,7 @@ router.get('/scan-tasks/:taskId', async (req, res) => {
       },
       startTime: task.startTime,
       endTime: task.endTime,
-      errors: task.errors.slice(0, 10) // 只返回前10个错误
+      errors: task.errors ? task.errors.slice(0, 10) : [] // 只返回前10个错误
     });
     
   } catch (error) {
@@ -1238,7 +1317,7 @@ router.post('/test-ssl-scan', async (req, res) => {
 router.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    mongodb: require('mongoose').connection.readyState === 1 ? 'connected' : 'disconnected',
     timestamp: new Date(),
     domainScanEnabled: process.env.SCAN_ENABLED === 'true',
     sslScanEnabled: process.env.SSL_SCAN_ENABLED === 'true',
@@ -1246,8 +1325,6 @@ router.get('/health', (req, res) => {
     version: '3.0.0'
   });
 });
-
-module.exports = router;
 
 // 设置相关路由
 router.get('/settings', async (req, res) => {
@@ -1364,3 +1441,8 @@ router.post('/settings', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// 正确导出路由器和批量扫描函数
+module.exports = router;
+module.exports.batchScanDomains = batchScanDomains;
+module.exports.batchScanSSLCertificates = batchScanSSLCertificates;
