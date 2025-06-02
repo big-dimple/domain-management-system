@@ -147,29 +147,65 @@ app.listen(PORT, () => {
 });
 
 // 优雅关闭处理
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('收到SIGTERM信号，开始优雅关闭...');
-  mongoose.connection.close(() => {
+  try {
+    await mongoose.connection.close();
     console.log('MongoDB连接已关闭');
     process.exit(0);
-  });
+  } catch (error) {
+    console.error('关闭MongoDB连接时出错:', error);
+    process.exit(1);
+  }
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('收到SIGINT信号，开始优雅关闭...');
-  mongoose.connection.close(() => {
+  try {
+    await mongoose.connection.close();
     console.log('MongoDB连接已关闭');
     process.exit(0);
-  });
+  } catch (error) {
+    console.error('关闭MongoDB连接时出错:', error);
+    process.exit(1);
+  }
 });
 
 // 未捕获异常处理
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
   console.error('未捕获的异常:', error);
   logScan(`未捕获的异常: ${error.message}`, 'error');
+  
+  // 尝试优雅关闭数据库连接
+  try {
+    await mongoose.connection.close();
+    console.log('异常情况下MongoDB连接已关闭');
+  } catch (closeError) {
+    console.error('关闭MongoDB连接失败:', closeError);
+  }
+  
+  process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', async (reason, promise) => {
   console.error('未处理的Promise拒绝:', reason);
   logScan(`未处理的Promise拒绝: ${reason}`, 'error');
+  
+  // 对于非关键的Promise拒绝，不强制退出程序
+  // 但如果是数据库相关的严重错误，则优雅关闭
+  if (reason && reason.name && (
+    reason.name.includes('Mongo') || 
+    reason.name.includes('Connection') ||
+    reason.message.includes('connection')
+  )) {
+    console.log('检测到数据库相关错误，准备优雅关闭...');
+    try {
+      await mongoose.connection.close();
+      console.log('数据库连接已安全关闭');
+      process.exit(1);
+    } catch (closeError) {
+      console.error('关闭数据库连接失败:', closeError);
+      process.exit(1);
+    }
+  }
 });
