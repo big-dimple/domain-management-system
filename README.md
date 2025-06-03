@@ -92,11 +92,11 @@ vim .env
 ### 常用命令
 ```bash
 # 系统管理
-./manage.sh status          # 查看状态
-./manage.sh restart          # 重启系统
-./manage.sh restart --update # 重启并更新代码
-./manage.sh logs             # 查看日志
-./manage.sh rebuild          # 完全重建
+./manager.sh status          # 查看状态
+./manager.sh restart          # 重启系统
+./manager.sh restart --update # 重启并更新代码
+./manager.sh logs             # 查看日志
+./manager.sh rebuild          # 完全重建
 
 # 功能测试
 ./test.sh all               # 运行所有测试
@@ -114,7 +114,7 @@ vim .env
 |------|------|----------|
 | `start.sh` | 启动系统 | 首次安装、日常启动 |
 | `build-for-china.sh` | 国内优化启动 | 中国大陆服务器 |
-| `manage.sh` | 系统管理 | 日常运维操作 |
+| `manager.sh` | 系统管理 | 日常运维操作 |
 | `test.sh` | 功能测试 | 验证系统功能 |
 | `backup.sh` | 数据备份 | 定期备份 |
 | `stop.sh` | 停止系统 | 维护时停止 |
@@ -208,10 +208,10 @@ vim .env
 **Q: 系统运行缓慢？**
 ```bash
 # 检查系统资源
-./manage.sh status
+./manager.sh status
 
 # 清理Docker资源
-./manage.sh cleanup
+./manager.sh cleanup
 ```
 
 ### 支持的域名后缀
