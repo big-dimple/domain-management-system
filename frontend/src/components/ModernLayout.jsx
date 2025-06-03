@@ -91,7 +91,10 @@ export const ModernLayout = ({ children }) => {
             </button>
           ) : (
             <div className="space-y-2">
-              <button className="sidebar-item w-full">
+              <button 
+                onClick={() => navigate('/settings')}
+                className="sidebar-item w-full"
+              >
                 <Settings className="w-5 h-5 mr-3" />
                 <span className="text-sm">设置</span>
               </button>

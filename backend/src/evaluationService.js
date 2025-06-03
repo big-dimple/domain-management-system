@@ -5,17 +5,17 @@ const { EvaluationConfig } = require('./models');
 async function getEvaluationConfig() {
   let config = await EvaluationConfig.findOne();
   if (!config) {
-    // 创建默认配置
+    // 创建默认配置，忽略环境变量
     config = await EvaluationConfig.create({
       domainConfig: {
-        urgentDays: parseInt(process.env.EVAL_URGENT_DAYS) || 7,
-        suggestDays: parseInt(process.env.EVAL_SUGGEST_DAYS) || 30,
-        attentionDays: parseInt(process.env.EVAL_ATTENTION_DAYS) || 90
+        urgentDays: 30,
+        suggestDays: 60,
+        attentionDays: 90
       },
       sslConfig: {
-        criticalDays: parseInt(process.env.SSL_CRITICAL_DAYS) || 7,
-        warningDays: parseInt(process.env.SSL_WARNING_DAYS) || 30,
-        attentionDays: parseInt(process.env.SSL_ATTENTION_DAYS) || 60
+        criticalDays: 14,
+        warningDays: 30,
+        attentionDays: 60
       }
     });
   }

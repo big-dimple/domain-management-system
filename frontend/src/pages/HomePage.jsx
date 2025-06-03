@@ -3,7 +3,6 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
 import { DomainForm } from '../components/DomainForm';
-import { EvaluationConfigForm } from '../components/EvaluationConfigForm';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Tooltip } from '../components/Tooltip';
 import { 
@@ -18,7 +17,6 @@ export const HomePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingDomain, setEditingDomain] = useState(null);
-  const [showEvalConfig, setShowEvalConfig] = useState(false);
   const [stats, setStats] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -542,15 +540,6 @@ export const HomePage = () => {
             </button>
           </Tooltip>
           
-          <Tooltip text="自定义评估标准">
-            <button
-              onClick={() => setShowEvalConfig(true)}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              评估设置
-            </button>
-          </Tooltip>
         </div>
         
         {/* CSV导入结果显示 */}
@@ -759,12 +748,6 @@ export const HomePage = () => {
         />
       )}
       
-      {/* 评估设置弹窗 */}
-      {showEvalConfig && (
-        <EvaluationConfigForm
-          onClose={() => setShowEvalConfig(false)}
-        />
-      )}
     </div>
   );
 };
