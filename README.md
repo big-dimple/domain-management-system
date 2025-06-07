@@ -67,7 +67,7 @@ git clone https://github.com/big-dimple/domain-management-system.git
 #科学上网#  wget https://github.com/big-dimple/domain-management-system/archive/refs/heads/master.zip
 cd domain-management-system
 
-# 2. 国内启动 (腾讯云可直接运行),请修改registry-mirrors后运行
+# 2. 国内启动 (腾讯云可直接运行)
 ./build-for-china.sh
 
 ```
@@ -94,15 +94,9 @@ vim .env
 # 系统管理
 ./manager.sh status          # 查看状态
 ./manager.sh restart          # 重启系统
-./manager.sh restart --update # 重启并更新代码
 ./manager.sh logs             # 查看日志
-./manager.sh rebuild          # 完全重建
+./manager.sh rebuild          # 完全重建,修改了yaml就需要重建
 
-# 功能测试
-./test.sh all               # 运行所有测试
-./test.sh domain baidu.com  # 测试域名扫描
-./test.sh ssl github.com    # 测试SSL扫描
-./test.sh alert dingtalk    # 测试告警
 
 # 数据管理
 ./backup.sh                 # 备份数据库

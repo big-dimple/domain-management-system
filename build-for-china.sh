@@ -247,7 +247,7 @@ check_existing_installation() {
                 log_info "仅更新配置..."
                 setup_docker_mirror
                 optimize_dockerfiles
-                log_success "配置更新完成，建议手动重启: ./manage.sh restart"
+                log_success "配置更新完成，建议手动重启: ./manager.sh restart"
                 exit 0
                 ;;
             3)
@@ -970,9 +970,9 @@ show_result() {
     log ""
     
     log "${BLUE}🛠️  常用管理命令:${NC}"
-    log "   查看状态: ./manage.sh status"
-    log "   查看日志: ./manage.sh logs"
-    log "   重启服务: ./manage.sh restart"
+    log "   查看状态: ./manager.sh status"
+    log "   查看日志: ./manager.sh logs"
+    log "   重启服务: ./manager.sh restart"
     log "   功能测试: ./test.sh all"
     log ""
     
@@ -994,7 +994,7 @@ show_result() {
         log "${GREEN}   立即访问: http://$SERVER_IP:8080${NC}"
     else
         log "${YELLOW}⚠️  系统可能需要检查，建议查看日志${NC}"
-        log "   检查命令: ./manage.sh logs"
+        log "   检查命令: ./manager.sh logs"
     fi
 }
 
