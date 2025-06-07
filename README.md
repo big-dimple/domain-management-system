@@ -14,7 +14,7 @@
 ### 一站式解决
 - ✅ **自动扫描**：每日凌晨自动更新域名到期时间，永不遗漏
 - ✅ **智能决策**：基于业务价值智能推荐续费建议，省钱省心
-- ✅ **统一告警**：钉钉/企业微信实时推送，多部门同步信息
+- ✅ **统一告警**：飞书/钉钉/企微实时推送，多部门同步信息
 - ✅ **可视化管理**：清爽UI，数据一目了然
 - ✅ **批量操作**：CSV导入导出，轻松管理上千域名
 
@@ -33,7 +33,7 @@
 -  **状态可视化** - 正常/警告/紧急/过期一目了然
 
 ### 3. 智能告警中心
-- 🔔 **多渠道通知** - 钉钉群组、企业微信机器人
+- 🔔 **多渠道通知** - 钉钉、企微、飞书webhook
 - ⏰ **分级告警** - 根据紧急程度自动分类
 - 📅 **定时推送** - 每日中午12点汇总推送
 - 🚨 **即时告警** - 支持手动触发紧急通知
@@ -67,7 +67,7 @@ git clone https://github.com/big-dimple/domain-management-system.git
 #科学上网#  wget https://github.com/big-dimple/domain-management-system/archive/refs/heads/master.zip
 cd domain-management-system
 
-# 2. 国内启动 (腾讯云可直接运行)
+# 2. 国内启动 (腾讯云ubuntu可直接运行)加速docker,npm,pip
 ./build-for-china.sh
 
 ```
