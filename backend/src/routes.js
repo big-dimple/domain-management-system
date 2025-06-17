@@ -192,7 +192,7 @@ async function batchScanDomains(taskId) {
   }
 }
 
-// 批量扫描SSL证书函数 - 修复版本
+// 批量扫描SSL证书
 async function batchScanSSLCertificates(taskId) {
   logSSL(`开始执行批量SSL证书扫描任务: ${taskId}`);
   
@@ -282,44 +282,6 @@ async function batchScanSSLCertificates(taskId) {
             daysRemaining: -1,
             validTo: null,
             validFrom: null
-          });
-          
-          task.scannedItems = (task.scannedItems || 0) + 1;
-          task.failureCount = (task.failureCount || 0) + 1;
-          
-          if (!task.errors) {
-            task.errors = [];
-          }
-          task.errors.push({
-            item: cert.domain,
-            error: error.message
-          });
-          
-          // 每处理5个证书保存一次进度
-          if (task.scannedItems % 5 === 0) {
-            await task.save();
-          }
-        }
-          
-        } catch (error) {
-          logSSL(`SSL证书 ${cert.domain} 扫描异常: ${error.message}`, 'error');
-          
-          // 更新证书扫描状态为错误 - 也要特殊处理
-          await SSLCertificate.findByIdAndUpdate(cert._id, {
-            domain: cert.domain,
-            lastChecked: new Date(),
-            status: 'error',
-            checkError: error.message,
-            accessible: false,
-            daysRemaining: -1,
-            validTo: null,
-            validFrom: null,
-            issuer: null,
-            subject: cert.domain,
-            serialNumber: null,
-            fingerprint: null,
-            isWildcard: false,
-            alternativeNames: [cert.domain]
           });
           
           task.scannedItems = (task.scannedItems || 0) + 1;
