@@ -8,6 +8,7 @@ show_help() {
     echo "测试类型:"
     echo "  domain <域名>        测试域名扫描功能"
     echo "  ssl <域名>           测试SSL证书扫描"
+    echo "  ssl-error            测试SSL错误状态处理"
     echo "  alert <类型>         测试告警功能"
     echo "  health              系统健康检查"
     echo "  all                 运行所有基础测试"
@@ -20,6 +21,7 @@ show_help() {
     echo "示例:"
     echo "  ./test.sh domain baidu.com"
     echo "  ./test.sh ssl github.com"
+    echo "  ./test.sh ssl-error"
     echo "  ./test.sh alert dingtalk"
     echo "  ./test.sh health"
     echo "  ./test.sh all"
@@ -75,6 +77,25 @@ test_ssl_scan() {
         echo "  2. 域名是否有SSL证书"
         echo "  3. 网络连接是否正常"
     }
+}
+
+test_ssl_error() {
+    echo "🔒 测试SSL错误状态处理..."
+    echo ""
+    echo "1. 测试不存在的域名（连接失败）"
+    test_ssl_scan "nonexistent-domain-for-test.com"
+    
+    echo ""
+    echo "2. 测试内网域名（连接超时）"
+    test_ssl_scan "192.168.1.999"
+    
+    echo ""
+    echo "3. 测试无SSL的域名（协议错误）"
+    test_ssl_scan "neverssl.com"
+    
+    echo ""
+    echo "✅ SSL错误状态测试完成"
+    echo "预期结果: 所有测试都应该返回 status: 'error' 和相应的错误信息"
 }
 
 test_alert() {
@@ -193,6 +214,10 @@ test_all() {
     test_ssl_scan "baidu.com"
     
     echo ""
+    echo "=== 4. SSL错误状态测试 ==="
+    test_ssl_error
+    
+    echo ""
     echo "✅ 基础测试完成!"
     echo ""
     echo "💡 如需测试告警功能，请运行:"
@@ -206,6 +231,9 @@ case "$1" in
         ;;
     ssl)
         test_ssl_scan "$2"
+        ;;
+    ssl-error)
+        test_ssl_error
         ;;
     alert)
         test_alert "$2"
