@@ -159,26 +159,49 @@ export const SSLPage = () => {
     }
   };
 
-  // 保存证书
-  const handleSave = async (certData) => {
-    try {
-      if (editingCert) {
-        await axios.put(`/api/ssl/certificates/${editingCert._id}`, certData);
-        toast.success('证书更新成功');
-      } else {
-        await axios.post('/api/ssl/certificates', certData);
-        toast.success('证书添加成功，正在扫描...');
-        // 触发单个域名扫描
-        handleManualScan();
+  // 保存证书 - 修改后的版本
+const handleSave = async (certData) => {
+  try {
+    if (editingCert) {
+      // 编辑现有证书
+      await axios.put(`/api/ssl/certificates/${editingCert._id}`, certData);
+      toast.success('证书更新成功');
+    } else {
+      // 添加新证书
+      const saveRes = await axios.post('/api/ssl/certificates', certData);
+      
+      // 立即扫描新添加的域名
+      const loadingToast = toast.loading(`正在扫描 ${certData.domain}...`);
+      
+      try {
+        const scanRes = await axios.post('/api/ssl/scan-single', {
+          domain: certData.domain
+        });
+        
+        if (scanRes.data.success) {
+          toast.success(`证书添加成功，扫描完成`, { id: loadingToast });
+        } else {
+          toast.warning(`证书已添加，但扫描失败: ${scanRes.data.message}`, { 
+            id: loadingToast,
+            duration: 5000
+          });
+        }
+      } catch (scanError) {
+        toast.warning(`证书已添加，但扫描出错: ${scanError.message}`, { 
+          id: loadingToast,
+          duration: 5000
+        });
       }
-      setShowAddForm(false);
-      setEditingCert(null);
-      fetchCertificates();
-      fetchStats();
-    } catch (error) {
-      toast.error('保存失败: ' + (error.response?.data?.error || error.message));
     }
-  };
+    
+    setShowAddForm(false);
+    setEditingCert(null);
+    fetchCertificates();
+    fetchStats();
+  } catch (error) {
+    toast.error('保存失败: ' + (error.response?.data?.error || error.message));
+  }
+};
 
   // 删除证书
   const handleDelete = async (id) => {
