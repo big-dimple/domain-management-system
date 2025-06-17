@@ -35,14 +35,61 @@ async function checkSSLCertificate(domain, port = 443) {
       try {
         const cert = socket.getPeerCertificate(true);
         
-        if (!cert || Object.keys(cert).length === 0) {
-          throw new Error('无法获取证书信息');
+        // 增强证书有效性检查
+        if (!cert || Object.keys(cert).length === 0 || !cert.valid_from || !cert.valid_to) {
+          logSSL(`证书信息无效或为空: ${domain}`, 'error');
+          socket.end();
+          resolve({
+            domain,
+            status: 'error',
+            accessible: false,
+            checkError: '无法获取有效的证书信息',
+            daysRemaining: -1,
+            validTo: null,
+            validFrom: null
+          });
+          return;
         }
         
         // 解析证书信息
         const validFrom = new Date(cert.valid_from);
         const validTo = new Date(cert.valid_to);
         const now = new Date();
+        
+        // 验证日期有效性
+        if (isNaN(validFrom.getTime()) || isNaN(validTo.getTime())) {
+          logSSL(`证书日期格式无效: ${domain}`, 'error');
+          socket.end();
+          resolve({
+            domain,
+            status: 'error',
+            accessible: false,
+            checkError: '证书日期格式无效',
+            daysRemaining: -1,
+            validTo: null,
+            validFrom: null
+          });
+          return;
+        }
+        
+        // 检查证书是否为未来很远的日期（可能是假证书）
+        const futureLimit = new Date();
+        futureLimit.setFullYear(futureLimit.getFullYear() + 10);
+        if (validTo > futureLimit || validFrom > now) {
+          logSSL(`证书日期异常: ${domain}, validFrom: ${validFrom}, validTo: ${validTo}`, 'error');
+          socket.end();
+          resolve({
+            domain,
+            status: 'error',
+            accessible: false,
+            checkError: '证书日期异常，可能是无效证书',
+            daysRemaining: -1,
+            validTo: null,
+            validFrom: null
+          });
+          return;
+        }
+        
         const daysRemaining = Math.floor((validTo - now) / (1000 * 60 * 60 * 24));
         
         // 判断状态
@@ -68,43 +115,60 @@ async function checkSSLCertificate(domain, port = 443) {
           isWildcard: cert.subject && cert.subject.CN && cert.subject.CN.startsWith('*.'),
           alternativeNames: cert.subjectaltname ? 
             cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '')) : [domain],
-          accessible: true  // 标记为可访问
+          accessible: true
         };
         
-        logSSL(`SSL证书检查成功: ${domain}, 剩余${daysRemaining}天`);
+        logSSL(`SSL证书检查成功: ${domain}, 剩余${daysRemaining}天, 状态: ${status}`);
         socket.end();
         resolve(result);
         
       } catch (error) {
         socket.end();
         logSSL(`SSL证书解析失败 ${domain}: ${error.message}`, 'error');
-        reject(error);
+        resolve({
+          domain,
+          status: 'error',
+          accessible: false,
+          checkError: `证书解析失败: ${error.message}`,
+          daysRemaining: -1,
+          validTo: null,
+          validFrom: null
+        });
       }
     });
     
     socket.on('error', (error) => {
       logSSL(`SSL连接失败 ${domain}: ${error.message}`, 'error');
       
-      // 返回特殊的错误状态对象，而不是直接reject
-      // 这样可以在批量扫描时正确更新状态
+      // 根据错误类型返回更准确的错误信息
+      let errorMessage = error.message;
+      if (error.code === 'ENOTFOUND') {
+        errorMessage = '域名不存在或DNS解析失败';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = '连接被拒绝，端口未开放';
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = '连接超时';
+      } else if (error.code === 'EHOSTUNREACH') {
+        errorMessage = '主机不可达';
+      }
+      
       const errorResult = {
         domain,
         status: 'error',
         accessible: false,
-        checkError: error.message,
+        checkError: errorMessage,
         daysRemaining: -1,
         validTo: null,
         validFrom: null
       };
       
-      resolve(errorResult); // 改为resolve，让调用方处理
+      resolve(errorResult);
     });
     
     socket.on('timeout', () => {
       socket.destroy();
       logSSL(`SSL连接超时 ${domain}`, 'error');
       
-      // 同样返回错误状态对象
       const timeoutResult = {
         domain,
         status: 'error',
