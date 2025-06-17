@@ -8,3 +8,7 @@ cdn.example.com
 www.example.com
 admin.example.com
 test.example.com
+# 以下域名用于测试错误状态
+nonexistent-domain-test.com
+offline-service.example.com
+192.168.1.999
