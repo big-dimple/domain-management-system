@@ -19,6 +19,7 @@ const logSSL = (message, level = 'info') => {
 };
 
 // 检查SSL证书
+// backend/src/sslChecker.js 中的 checkSSLCertificate 函数超时优化
 
 async function checkSSLCertificate(domain, port = 443) {
   return new Promise((resolve, reject) => {
@@ -29,14 +30,13 @@ async function checkSSLCertificate(domain, port = 443) {
       port: port,
       servername: domain,
       rejectUnauthorized: false,
-      timeout: 10000
+      timeout: 15000  // 增加超时时间到15秒
     };
     
     const socket = tls.connect(options, () => {
       try {
         const cert = socket.getPeerCertificate(true);
         
-        // 增强证书有效性检查
         if (!cert || Object.keys(cert).length === 0 || !cert.valid_from || !cert.valid_to) {
           logSSL(`证书信息无效或为空: ${domain}`, 'error');
           socket.end();
@@ -52,12 +52,10 @@ async function checkSSLCertificate(domain, port = 443) {
           return;
         }
         
-        // 解析证书信息
         const validFrom = new Date(cert.valid_from);
         const validTo = new Date(cert.valid_to);
         const now = new Date();
         
-        // 验证日期有效性
         if (isNaN(validFrom.getTime()) || isNaN(validTo.getTime())) {
           logSSL(`证书日期格式无效: ${domain}`, 'error');
           socket.end();
@@ -73,7 +71,7 @@ async function checkSSLCertificate(domain, port = 443) {
           return;
         }
         
-        // 检查证书是否为未来很远的日期（可能是假证书）
+        // 检查证书日期合理性
         const futureLimit = new Date();
         futureLimit.setFullYear(futureLimit.getFullYear() + 10);
         if (validTo > futureLimit || validFrom > now) {
@@ -91,7 +89,7 @@ async function checkSSLCertificate(domain, port = 443) {
           return;
         }
         
-        // 检查证书主体是否匹配目标域名（防止获取到错误的证书）
+        // 域名匹配检查
         const certDomain = cert.subject && cert.subject.CN;
         const altNames = cert.subjectaltname ? 
           cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '').toLowerCase()) : [];
@@ -105,7 +103,8 @@ async function checkSSLCertificate(domain, port = 443) {
         );
         
         if (!isValidCert) {
-          logSSL(`证书域名不匹配: ${domain}, 证书CN: ${certDomain}, 备用域名: ${altNames.join(', ')}`, 'error');
+          logSSL(`证书域名不匹配: ${domain}, 证书CN: ${certDomain}`, 'warn');
+          // 域名不匹配也返回error，但是错误信息更明确
           socket.end();
           resolve({
             domain,
@@ -121,7 +120,6 @@ async function checkSSLCertificate(domain, port = 443) {
         
         const daysRemaining = Math.floor((validTo - now) / (1000 * 60 * 60 * 24));
         
-        // 修复：先判断证书是否有效，再判断状态
         let status = 'active';
         if (daysRemaining < 0) {
           status = 'expired';
@@ -140,7 +138,7 @@ async function checkSSLCertificate(domain, port = 443) {
           daysRemaining,
           serialNumber: cert.serialNumber,
           fingerprint: cert.fingerprint,
-          status, // 关键修复：确保正常证书的状态不会被覆盖
+          status,
           isWildcard: cert.subject && cert.subject.CN && cert.subject.CN.startsWith('*.'),
           alternativeNames: cert.subjectaltname ? 
             cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '')) : [domain],
@@ -156,7 +154,7 @@ async function checkSSLCertificate(domain, port = 443) {
         logSSL(`SSL证书解析失败 ${domain}: ${error.message}`, 'error');
         resolve({
           domain,
-          status: 'error', // 确保错误状态
+          status: 'error',
           accessible: false,
           checkError: `证书解析失败: ${error.message}`,
           daysRemaining: -1,
@@ -169,47 +167,69 @@ async function checkSSLCertificate(domain, port = 443) {
     socket.on('error', (error) => {
       logSSL(`SSL连接失败 ${domain}: ${error.message}`, 'error');
       
-      // 根据错误类型返回更准确的错误信息
       let errorMessage = error.message;
+      let isTemporary = false; // 标记是否可能是临时错误
+      
       if (error.code === 'ENOTFOUND') {
         errorMessage = '域名不存在或DNS解析失败';
       } else if (error.code === 'ECONNREFUSED') {
         errorMessage = '连接被拒绝，端口未开放';
       } else if (error.code === 'ETIMEDOUT') {
         errorMessage = '连接超时';
+        isTemporary = true; // 超时可能是临时的
       } else if (error.code === 'EHOSTUNREACH') {
         errorMessage = '主机不可达';
+        isTemporary = true; // 网络不可达可能是临时的
+      } else if (error.code === 'ECONNRESET') {
+        errorMessage = '连接被重置';
+        isTemporary = true; // 连接重置可能是临时的
       }
       
-      const errorResult = {
+      resolve({
         domain,
-        status: 'error', // 确保错误状态
+        status: 'error',
         accessible: false,
         checkError: errorMessage,
+        isTemporary, // 添加临时错误标记
         daysRemaining: -1,
         validTo: null,
         validFrom: null
-      };
-      
-      resolve(errorResult);
+      });
     });
     
     socket.on('timeout', () => {
       socket.destroy();
-      logSSL(`SSL连接超时 ${domain}`, 'error');
+      logSSL(`SSL连接超时 ${domain}`, 'warn');
       
-      const timeoutResult = {
+      resolve({
         domain,
-        status: 'error', // 确保错误状态
+        status: 'error',
         accessible: false,
         checkError: 'SSL连接超时',
+        isTemporary: true, // 超时标记为临时错误
         daysRemaining: -1,
         validTo: null,
         validFrom: null
-      };
-      
-      resolve(timeoutResult);
+      });
     });
+    
+    // 设置总体超时，防止卡住
+    setTimeout(() => {
+      if (!socket.destroyed) {
+        socket.destroy();
+        logSSL(`强制结束SSL检查 ${domain} (总体超时)`, 'warn');
+        resolve({
+          domain,
+          status: 'error',
+          accessible: false,
+          checkError: 'SSL检查总体超时',
+          isTemporary: true,
+          daysRemaining: -1,
+          validTo: null,
+          validFrom: null
+        });
+      }
+    }, 20000); // 20秒总体超时
   });
 }
 
