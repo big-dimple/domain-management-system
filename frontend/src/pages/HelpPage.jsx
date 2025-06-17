@@ -469,9 +469,12 @@ export const HelpPage = () => {
                     <div className="bg-green-50 p-4 rounded mt-3">
                       <h4 className="font-medium text-green-900 mb-2">SSL证书评估阈值</h4>
                       <ul className="text-sm text-green-800 space-y-1">
-                        <li>• 紧急状态：默认7天</li>
-                        <li>• 警告状态：默认30天</li>
-                        <li>• 关注状态：默认60天</li>
+                        <li>• 紧急状态：7天内到期</li>
+                        <li>• 警告状态：7-30天内到期</li>
+                        <li>• 正常状态：30天以上</li>
+                        <li>• 访问不通：无法连接到服务器</li>
+                        <li>• 已过期：证书超过有效期</li>
+                        <li>• 自动续期的证书会特别标注</li>
                       </ul>
                     </div>
                   </div>
