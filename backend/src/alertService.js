@@ -255,12 +255,27 @@ async function checkAndSendAlerts() {
           const sslExpiryDate = new Date();
           sslExpiryDate.setDate(sslExpiryDate.getDate() + (config.sslDaysBeforeExpiry || 14));
           
+          // 分别查询不同状态的证书
           const expiringCertificates = await SSLCertificate.find({
-            validTo: {
-              $gte: new Date(),
-              $lte: sslExpiryDate
-            },
-            status: { $in: ['critical', 'warning', 'active'] }
+            $or: [
+              // 即将到期的证书
+              {
+                validTo: {
+                  $gte: new Date(),
+                  $lte: sslExpiryDate
+                },
+                status: { $in: ['critical', 'warning', 'active'] }
+              },
+              // 已过期的证书
+              {
+                validTo: { $lt: new Date() },
+                status: 'expired'
+              },
+              // 访问失败的证书（总是告警）
+              {
+                status: 'error'
+              }
+            ]
           }).sort({ validTo: 1 });
           
           if (expiringCertificates.length > 0) {
