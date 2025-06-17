@@ -7,7 +7,7 @@ const path = require('path');
 // 告警日志
 const logAlert = (message, level = 'info') => {
   const timestamp = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const logMessage = `[${timestamp}] [ALERT] [${level.toUpperCase()}] ${message}\n`;
+  const logMessage = `[${timestamp}] [ALERT] [${level.toUpperCase()}] ${message}  \n`;
   
   // 写入日志文件
   const logFile = path.join('/app/logs', `alert_${dayjs().format('YYYY-MM-DD')}.log`);
