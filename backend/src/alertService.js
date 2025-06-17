@@ -142,21 +142,43 @@ function buildDomainAlertContent(domains) {
 // 构建SSL证书告警内容
 function buildSSLAlertContent(certificates) {
   const groups = {
+    error: [],      // 新增：无法访问
     critical: [],
     warning: [],
+    expired: [],    // 新增：已过期
     active: []
   };
   
   certificates.forEach(cert => {
-    groups[cert.status]?.push({
-      domain: cert.domain,
-      days: cert.daysRemaining,
-      date: dayjs(cert.validTo).format('YYYY-MM-DD'),
-      issuer: cert.issuer
-    });
+    const group = groups[cert.status];
+    if (group) {
+      group.push({
+        domain: cert.domain,
+        days: cert.daysRemaining,
+        date: cert.validTo ? dayjs(cert.validTo).format('YYYY-MM-DD') : '未知',
+        issuer: cert.issuer || '未知',
+        error: cert.checkError
+      });
+    }
   });
   
   let content = '【SSL证书到期提醒】\n\n';
+  
+  if (groups.error.length > 0) {
+    content += '❌ 无法访问：\n';
+    groups.error.forEach(c => {
+      content += `  • ${c.domain} - ${c.error || '连接失败'}\n`;
+    });
+    content += '\n';
+  }
+  
+  if (groups.expired.length > 0) {
+    content += '⚫ 已过期：\n';
+    groups.expired.forEach(c => {
+      content += `  • ${c.domain} - ${c.date} (已过期${Math.abs(c.days)}天)\n`;
+    });
+    content += '\n';
+  }
   
   if (groups.critical.length > 0) {
     content += '🔴 紧急处理：\n';
