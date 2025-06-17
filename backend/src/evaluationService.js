@@ -56,8 +56,18 @@ async function evaluateRenewal(domain) {
 
 // 评估SSL证书状态
 async function evaluateSSLStatus(certificate) {
+  // 如果证书已经标记为错误状态，不要重新评估
+  if (certificate.status === 'error' || certificate.accessible === false) {
+    return certificate.status || 'error';
+  }
+  
   const config = await getEvaluationConfig();
   const daysRemaining = certificate.daysRemaining;
+  
+  // 只有在证书可访问且有有效daysRemaining时才进行状态评估
+  if (typeof daysRemaining !== 'number' || daysRemaining === -1) {
+    return 'error';
+  }
   
   if (daysRemaining < 0) {
     return 'expired';
@@ -92,6 +102,11 @@ async function evaluateAllDomains(domains) {
 async function evaluateAllSSLCertificates(certificates) {
   const results = [];
   for (const cert of certificates) {
+    // 关键修复：跳过错误状态的证书，不要重新评估
+    if (cert.status === 'error' || cert.accessible === false) {
+      continue;
+    }
+    
     const status = await evaluateSSLStatus(cert);
     if (cert.status !== status) {
       cert.status = status;
