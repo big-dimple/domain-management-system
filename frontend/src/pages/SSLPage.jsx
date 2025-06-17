@@ -196,12 +196,19 @@ export const SSLPage = () => {
 
   // 获取状态徽章
   const getStatusBadge = (status) => {
+    const statusMap = {
+      active: { text: '正常', className: 'active' },
+      warning: { text: '即将到期', className: 'warning' },
+      critical: { text: '紧急', className: 'critical' },
+      expired: { text: '已过期', className: 'expired' },
+      error: { text: '访问不通', className: 'error' }
+    };
+    
+    const statusInfo = statusMap[status] || { text: '未知', className: 'error' };
+    
     return (
-      <span className={`ssl-status-badge ${status}`}>
-        {status === 'active' ? '正常' :
-         status === 'warning' ? '即将到期' :
-         status === 'critical' ? '紧急' :
-         status === 'expired' ? '已过期' : '错误'}
+      <span className={`ssl-status-badge ${statusInfo.className}`}>
+        {statusInfo.text}
       </span>
     );
   };
