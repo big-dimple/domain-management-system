@@ -234,12 +234,11 @@ async function batchScanSSLCertificates(taskId) {
         try {
           logSSL(`开始扫描SSL证书: ${cert.domain}`);
           
-          // 完全复制导入txt的逻辑
           const sslInfo = await checkSSLCertificate(cert.domain);
           
-          // 统一处理保存逻辑 - 完全复制导入txt的代码
+          // 修复：确保错误状态和正常状态都被正确保存
           if (sslInfo.status === 'error') {
-            // 错误状态特殊处理
+            // 错误状态：显式设置所有字段
             await SSLCertificate.findByIdAndUpdate(cert._id, {
               domain: cert.domain,
               lastChecked: new Date(),
@@ -248,14 +247,22 @@ async function batchScanSSLCertificates(taskId) {
               accessible: false,
               daysRemaining: -1,
               validTo: null,
-              validFrom: null
+              validFrom: null,
+              // 清空正常状态的字段
+              issuer: null,
+              subject: null,
+              serialNumber: null,
+              fingerprint: null,
+              isWildcard: false,
+              alternativeNames: [cert.domain]
             });
           } else {
-            // 正常状态保存
+            // 正常状态：保存完整的SSL信息
             await SSLCertificate.findByIdAndUpdate(cert._id, {
               ...sslInfo,
               lastChecked: new Date(),
-              checkError: null
+              checkError: null,
+              accessible: true
             });
           }
           
@@ -272,7 +279,7 @@ async function batchScanSSLCertificates(taskId) {
         } catch (error) {
           logSSL(`SSL证书 ${cert.domain} 扫描异常: ${error.message}`, 'error');
           
-          // 更新证书扫描状态为错误 - 也复制导入txt的逻辑
+          // 异常处理：设置为错误状态
           await SSLCertificate.findByIdAndUpdate(cert._id, {
             domain: cert.domain,
             lastChecked: new Date(),
@@ -281,7 +288,14 @@ async function batchScanSSLCertificates(taskId) {
             accessible: false,
             daysRemaining: -1,
             validTo: null,
-            validFrom: null
+            validFrom: null,
+            // 清空正常状态的字段
+            issuer: null,
+            subject: null,
+            serialNumber: null,
+            fingerprint: null,
+            isWildcard: false,
+            alternativeNames: [cert.domain]
           });
           
           task.scannedItems = (task.scannedItems || 0) + 1;
@@ -313,11 +327,14 @@ async function batchScanSSLCertificates(taskId) {
     
     logSSL(`批量SSL证书扫描任务 ${taskId} 完成。成功: ${task.successCount}，失败: ${task.failureCount}`);
     
-    // 更新所有证书的状态
+    // 修复：只对正常状态的证书进行状态重新评估，跳过错误状态的
     try {
-      const allCertificates = await SSLCertificate.find();
-      await evaluateAllSSLCertificates(allCertificates);
-      logSSL('SSL证书状态评估更新完成');
+      const normalCertificates = await SSLCertificate.find({ 
+        status: { $ne: 'error' },
+        accessible: { $ne: false }
+      });
+      await evaluateAllSSLCertificates(normalCertificates);
+      logSSL('SSL证书状态评估更新完成（跳过错误状态证书）');
     } catch (evalError) {
       logSSL(`SSL证书状态评估更新失败: ${evalError.message}`, 'error');
     }
