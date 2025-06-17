@@ -881,6 +881,76 @@ router.delete('/ssl/certificates/:id', async (req, res) => {
 });
 
 // SSL证书导入（TXT格式）
+// 单个SSL证书扫描接口 - 添加到routes.js的SSL证书相关路由部分
+router.post('/ssl/scan-single', async (req, res) => {
+  try {
+    const { domain } = req.body;
+    
+    if (!domain) {
+      return res.status(400).json({ error: '请提供域名' });
+    }
+    
+    logSSL(`开始单个SSL证书扫描: ${domain}`);
+    
+    try {
+      const scanResult = await checkSSLCertificate(domain);
+      
+      // 更新或创建证书记录
+      const updatedCert = await SSLCertificate.findOneAndUpdate(
+        { domain },
+        {
+          ...scanResult,
+          lastChecked: new Date(),
+          checkError: scanResult.status === 'error' ? scanResult.checkError : null
+        },
+        { 
+          new: true, 
+          upsert: true, 
+          runValidators: true 
+        }
+      );
+      
+      logSSL(`SSL证书 ${domain} 扫描完成，状态: ${scanResult.status}`);
+      
+      res.json({
+        success: true,
+        message: '扫描完成',
+        certificate: updatedCert
+      });
+      
+    } catch (scanError) {
+      // 扫描失败时也要更新记录，标记为错误状态
+      const errorCert = await SSLCertificate.findOneAndUpdate(
+        { domain },
+        {
+          domain,
+          lastChecked: new Date(),
+          status: 'error',
+          checkError: scanError.message,
+          accessible: false,
+          daysRemaining: -1
+        },
+        { 
+          new: true, 
+          upsert: true, 
+          runValidators: true 
+        }
+      );
+      
+      logSSL(`SSL证书 ${domain} 扫描失败: ${scanError.message}`, 'error');
+      
+      res.json({
+        success: false,
+        message: `扫描失败: ${scanError.message}`,
+        certificate: errorCert
+      });
+    }
+    
+  } catch (error) {
+    logSSL(`单个SSL扫描接口错误: ${error.message}`, 'error');
+    res.status(500).json({ error: error.message });
+  }
+});
 router.post('/ssl/import', async (req, res) => {
   try {
     const { domains } = req.body;
