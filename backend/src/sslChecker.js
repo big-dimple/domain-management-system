@@ -90,6 +90,34 @@ async function checkSSLCertificate(domain, port = 443) {
           return;
         }
         
+        // 检查证书主体是否匹配目标域名（防止获取到错误的证书）
+        const certDomain = cert.subject && cert.subject.CN;
+        const altNames = cert.subjectaltname ? 
+          cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '').toLowerCase()) : [];
+        
+        const targetDomain = domain.toLowerCase();
+        const isValidCert = certDomain && (
+          certDomain.toLowerCase() === targetDomain ||
+          certDomain.toLowerCase() === `*.${targetDomain.split('.').slice(1).join('.')}` ||
+          altNames.includes(targetDomain) ||
+          altNames.some(name => name.startsWith('*.') && targetDomain.endsWith(name.substring(1)))
+        );
+        
+        if (!isValidCert) {
+          logSSL(`证书域名不匹配: ${domain}, 证书CN: ${certDomain}, 备用域名: ${altNames.join(', ')}`, 'error');
+          socket.end();
+          resolve({
+            domain,
+            status: 'error',
+            accessible: false,
+            checkError: `证书域名不匹配，获取到的证书CN: ${certDomain}`,
+            daysRemaining: -1,
+            validTo: null,
+            validFrom: null
+          });
+          return;
+        }
+        
         const daysRemaining = Math.floor((validTo - now) / (1000 * 60 * 60 * 24));
         
         // 判断状态
