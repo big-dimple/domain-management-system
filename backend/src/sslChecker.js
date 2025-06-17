@@ -67,7 +67,8 @@ async function checkSSLCertificate(domain, port = 443) {
           status,
           isWildcard: cert.subject && cert.subject.CN && cert.subject.CN.startsWith('*.'),
           alternativeNames: cert.subjectaltname ? 
-            cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '')) : [domain]
+            cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '')) : [domain],
+          accessible: true  // 标记为可访问
         };
         
         logSSL(`SSL证书检查成功: ${domain}, 剩余${daysRemaining}天`);
@@ -83,13 +84,38 @@ async function checkSSLCertificate(domain, port = 443) {
     
     socket.on('error', (error) => {
       logSSL(`SSL连接失败 ${domain}: ${error.message}`, 'error');
-      reject(new Error(`SSL连接失败: ${error.message}`));
+      
+      // 返回特殊的错误状态对象，而不是直接reject
+      // 这样可以在批量扫描时正确更新状态
+      const errorResult = {
+        domain,
+        status: 'error',
+        accessible: false,
+        checkError: error.message,
+        daysRemaining: -1,
+        validTo: null,
+        validFrom: null
+      };
+      
+      resolve(errorResult); // 改为resolve，让调用方处理
     });
     
     socket.on('timeout', () => {
       socket.destroy();
       logSSL(`SSL连接超时 ${domain}`, 'error');
-      reject(new Error('SSL连接超时'));
+      
+      // 同样返回错误状态对象
+      const timeoutResult = {
+        domain,
+        status: 'error',
+        accessible: false,
+        checkError: 'SSL连接超时',
+        daysRemaining: -1,
+        validTo: null,
+        validFrom: null
+      };
+      
+      resolve(timeoutResult);
     });
   });
 }
