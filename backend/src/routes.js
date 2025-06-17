@@ -236,9 +236,9 @@ async function batchScanSSLCertificates(taskId) {
           
           const scanResult = await checkSSLCertificate(cert.domain);
           
-          // 参考导入txt的逻辑：对error状态特殊处理
+          // 完全参考导入txt的逻辑处理
           if (scanResult.status === 'error') {
-            // 错误状态特殊处理，确保不会有误导性的过期日期
+            // 错误状态特殊处理
             await SSLCertificate.findByIdAndUpdate(cert._id, {
               domain: cert.domain,
               lastChecked: new Date(),
@@ -291,12 +291,22 @@ async function batchScanSSLCertificates(taskId) {
         } catch (error) {
           logSSL(`SSL证书 ${cert.domain} 扫描异常: ${error.message}`, 'error');
           
-          // 更新证书扫描状态为错误
+          // 更新证书扫描状态为错误 - 也要特殊处理
           await SSLCertificate.findByIdAndUpdate(cert._id, {
+            domain: cert.domain,
             lastChecked: new Date(),
             status: 'error',
             checkError: error.message,
-            accessible: false
+            accessible: false,
+            daysRemaining: -1,
+            validTo: null,
+            validFrom: null,
+            issuer: null,
+            subject: cert.domain,
+            serialNumber: null,
+            fingerprint: null,
+            isWildcard: false,
+            alternativeNames: [cert.domain]
           });
           
           task.scannedItems = (task.scannedItems || 0) + 1;
