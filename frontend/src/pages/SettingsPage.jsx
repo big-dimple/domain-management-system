@@ -275,7 +275,7 @@ export const SettingsPage = () => {
               
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-medium mb-3">SSL证书状态说明</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div>
                     <span className="inline-block px-2 py-1 rounded text-xs bg-red-100 text-red-800 mb-2">已过期</span>
                     <p className="text-xs text-gray-600">证书已经过期</p>
@@ -291,6 +291,10 @@ export const SettingsPage = () => {
                   <div>
                     <span className="inline-block px-2 py-1 rounded text-xs bg-green-100 text-green-800 mb-2">正常</span>
                     <p className="text-xs text-gray-600">大于{config.sslConfig.warningDays}天</p>
+                  </div>
+                  <div>
+                    <span className="inline-block px-2 py-1 rounded text-xs bg-red-100 text-red-800 mb-2">访问不通</span>
+                    <p className="text-xs text-gray-600">连接失败或域名不可达</p>
                   </div>
                 </div>
               </div>
