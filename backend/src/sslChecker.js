@@ -181,7 +181,7 @@ async function checkSSLCertificate(domain, port = 443) {
         errorMessage = '主机不可达';
         isTemporary = true; // 网络不可达可能是临时的
       } else if (error.code === 'ECONNRESET') {
-        errorMessage = '业务是否下线';
+        errorMessage = '业务若下线请更新列表';
         isTemporary = true; // 连接重置可能是临时的
       }
       
