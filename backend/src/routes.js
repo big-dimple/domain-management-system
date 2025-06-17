@@ -213,7 +213,7 @@ async function batchScanDomains(taskId) {
   }
 }
 
-// 批量扫描SSL证书函数 - 修复版本
+// 批量扫描SSL证书函数
 async function batchScanSSLCertificates(taskId) {
   logSSL(`开始执行批量SSL证书扫描任务: ${taskId}`);
   
@@ -257,17 +257,43 @@ async function batchScanSSLCertificates(taskId) {
           
           const scanResult = await checkSSLCertificate(cert.domain);
           
-          // 更新证书信息
-          await SSLCertificate.findByIdAndUpdate(cert._id, {
-            ...scanResult,
-            lastChecked: new Date(),
-            checkError: null
-          });
-          
-          task.scannedItems = (task.scannedItems || 0) + 1;
-          task.successCount = (task.successCount || 0) + 1;
-          
-          logSSL(`SSL证书 ${cert.domain} 扫描成功，剩余${scanResult.daysRemaining}天`);
+          // 检查是否是错误状态（无法访问）
+          if (scanResult.status === 'error') {
+            // 更新为错误状态
+            await SSLCertificate.findByIdAndUpdate(cert._id, {
+              lastChecked: new Date(),
+              status: 'error',
+              checkError: scanResult.checkError,
+              accessible: false,
+              daysRemaining: -1
+            });
+            
+            task.scannedItems = (task.scannedItems || 0) + 1;
+            task.failureCount = (task.failureCount || 0) + 1;
+            
+            if (!task.errors) {
+              task.errors = [];
+            }
+            task.errors.push({
+              item: cert.domain,
+              error: scanResult.checkError
+            });
+            
+            logSSL(`SSL证书 ${cert.domain} 无法访问: ${scanResult.checkError}`, 'error');
+          } else {
+            // 正常更新证书信息
+            await SSLCertificate.findByIdAndUpdate(cert._id, {
+              ...scanResult,
+              lastChecked: new Date(),
+              checkError: null,
+              accessible: true
+            });
+            
+            task.scannedItems = (task.scannedItems || 0) + 1;
+            task.successCount = (task.successCount || 0) + 1;
+            
+            logSSL(`SSL证书 ${cert.domain} 扫描成功，剩余${scanResult.daysRemaining}天`);
+          }
           
           // 每扫描5个证书保存一次进度
           if (task.scannedItems % 5 === 0) {
@@ -275,13 +301,14 @@ async function batchScanSSLCertificates(taskId) {
           }
           
         } catch (error) {
-          logSSL(`SSL证书 ${cert.domain} 扫描失败: ${error.message}`, 'error');
+          logSSL(`SSL证书 ${cert.domain} 扫描异常: ${error.message}`, 'error');
           
-          // 更新证书扫描状态
+          // 更新证书扫描状态为错误
           await SSLCertificate.findByIdAndUpdate(cert._id, {
             lastChecked: new Date(),
             status: 'error',
-            checkError: error.message
+            checkError: error.message,
+            accessible: false
           });
           
           task.scannedItems = (task.scannedItems || 0) + 1;
