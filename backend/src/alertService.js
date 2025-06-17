@@ -20,8 +20,11 @@ const logAlert = (message, level = 'info') => {
 // 发送钉钉告警
 async function sendDingTalkAlert(webhook, content) {
   const data = {
-    msgtype: 'text',
-    text: { content }
+    msgtype: 'markdown',
+    markdown: {
+      title: '域名SSL到期提醒',
+      text: content
+    }
   };
   
   try {
@@ -41,8 +44,10 @@ async function sendDingTalkAlert(webhook, content) {
 // 发送企业微信告警
 async function sendWeChatAlert(webhook, content) {
   const data = {
-    msgtype: 'text',
-    text: { content }
+    msgtype: 'markdown',
+    markdown: {
+      content: content
+    }
   };
   
   try {
@@ -62,15 +67,19 @@ async function sendWeChatAlert(webhook, content) {
 // 发送飞书告警
 async function sendFeishuAlert(webhook, content) {
   const data = {
-    msg_type: 'text',
-    content: {
-      text: content
+    msg_type: 'interactive',
+    card: {
+      elements: [
+        {
+          tag: 'markdown',
+          content: content
+        }
+      ]
     }
   };
   
   try {
     const response = await axios.post(webhook, data);
-    // 飞书机器人成功响应通常返回 {"code":0} 或者 {"StatusCode":0}
     if (response.data.code === 0 || response.data.StatusCode === 0 || response.status === 200) {
       logAlert(`飞书告警发送成功`);
       return { success: true };
@@ -103,50 +112,50 @@ function buildDomainAlertContent(domains) {
     }
   });
   
-  let content = '【域名到期提醒】\n\n';
+  let content = '## 域名到期提醒\n\n';
   
   if (groups['紧急续费'].length > 0) {
-    content += '🔴 紧急续费：\n';
+    content += '### 🔴 紧急续费\n';
     groups['紧急续费'].forEach(d => {
-      content += `  • ${d.name} - ${d.date} (${d.days}天)\n`;
+      content += `• \`${d.name}\` - <font color="red">**${d.days}天**</font>\n`;
     });
     content += '\n';
   }
   
   if (groups['建议续费'].length > 0) {
-    content += '🟢 建议续费：\n';
+    content += '### 🟢 建议续费\n';
     groups['建议续费'].forEach(d => {
-      content += `  • ${d.name} - ${d.date} (${d.days}天)\n`;
+      content += `• \`${d.name}\` - <font color="red">**${d.days}天**</font>\n`;
     });
     content += '\n';
   }
   
   if (groups['请示领导'].length > 0) {
-    content += '🟡 请示领导：\n';
+    content += '### 🟡 请示领导\n';
     groups['请示领导'].forEach(d => {
-      content += `  • ${d.name} - ${d.date} (${d.days}天)\n`;
+      content += `• \`${d.name}\` - <font color="red">**${d.days}天**</font>\n`;
     });
     content += '\n';
   }
   
   if (groups['保持续费'].length > 0) {
-    content += '🔵 保持续费：\n';
+    content += '### 🔵 保持续费\n';
     groups['保持续费'].forEach(d => {
-      content += `  • ${d.name} - ${d.date} (${d.days}天)\n`;
+      content += `• \`${d.name}\` - <font color="red">**${d.days}天**</font>\n`;
     });
   }
   
   return content;
 }
 
-// 构建SSL证书告警内容 - 修复版
+// 构建SSL证书告警内容 - markdown版本
 function buildSSLAlertContent(certificates) {
   const groups = {
-    error: [],      // 无法访问
-    expired: [],    // 已过期
-    critical: [],   // 紧急处理
-    warning: [],    // 即将到期
-    active: []      // 正常但需关注
+    error: [],      
+    expired: [],    
+    critical: [],   
+    warning: [],    
+    active: []      
   };
   
   certificates.forEach(cert => {
@@ -155,21 +164,19 @@ function buildSSLAlertContent(certificates) {
       group.push({
         domain: cert.domain,
         days: cert.daysRemaining || 0,
-        date: cert.validTo ? dayjs(cert.validTo).format('YYYY-MM-DD') : '未知',
-        issuer: cert.issuer || '未知',
         error: cert.checkError
       });
     }
   });
   
-  let content = '【SSL证书到期提醒】\n\n';
+  let content = '## SSL证书到期提醒\n\n';
   let hasContent = false;
   
-  // 无法访问的证书（最高优先级）
+  // 无法访问的证书
   if (groups.error.length > 0) {
-    content += '❌ 无法访问：\n';
+    content += '### ❌ 无法访问\n';
     groups.error.forEach(c => {
-      content += `  • ${c.domain} - ${c.error || '连接失败'}\n`;
+      content += `• \`${c.domain}\` - ${c.error || '连接失败'}\n`;
     });
     content += '\n';
     hasContent = true;
@@ -177,10 +184,10 @@ function buildSSLAlertContent(certificates) {
   
   // 已过期的证书
   if (groups.expired.length > 0) {
-    content += '⚫ 已过期：\n';
+    content += '### ⚫ 已过期\n';
     groups.expired.forEach(c => {
       const expiredDays = c.days < 0 ? Math.abs(c.days) : 0;
-      content += `  • ${c.domain} - ${c.date} (已过期${expiredDays}天)\n`;
+      content += `• \`${c.domain}\` - <font color="red">**已过期${expiredDays}天**</font>\n`;
     });
     content += '\n';
     hasContent = true;
@@ -188,9 +195,9 @@ function buildSSLAlertContent(certificates) {
   
   // 紧急处理的证书
   if (groups.critical.length > 0) {
-    content += '🔴 紧急处理：\n';
+    content += '### 🔴 紧急处理\n';
     groups.critical.forEach(c => {
-      content += `  • ${c.domain} - ${c.date} (${c.days}天) - ${c.issuer}\n`;
+      content += `• \`${c.domain}\` - <font color="red">**${c.days}天**</font>\n`;
     });
     content += '\n';
     hasContent = true;
@@ -198,28 +205,14 @@ function buildSSLAlertContent(certificates) {
   
   // 即将到期的证书
   if (groups.warning.length > 0) {
-    content += '🟡 即将到期：\n';
+    content += '### 🟡 即将到期\n';
     groups.warning.forEach(c => {
-      content += `  • ${c.domain} - ${c.date} (${c.days}天) - ${c.issuer}\n`;
+      content += `• \`${c.domain}\` - <font color="red">**${c.days}天**</font>\n`;
     });
     content += '\n';
     hasContent = true;
   }
   
-  // 正常但需关注的证书（限制显示数量）
-  if (groups.active.length > 0) {
-    content += '🟢 正常关注：\n';
-    const limitedActive = groups.active.slice(0, 5);
-    limitedActive.forEach(c => {
-      content += `  • ${c.domain} - ${c.date} (${c.days}天)\n`;
-    });
-    if (groups.active.length > 5) {
-      content += `  • ... 还有 ${groups.active.length - 5} 个证书\n`;
-    }
-    hasContent = true;
-  }
-  
-  // 如果没有任何内容，返回空字符串
   if (!hasContent) {
     return '';
   }
