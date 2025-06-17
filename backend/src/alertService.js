@@ -139,14 +139,14 @@ function buildDomainAlertContent(domains) {
   return content;
 }
 
-// 构建SSL证书告警内容
+// 构建SSL证书告警内容 - 修复版
 function buildSSLAlertContent(certificates) {
   const groups = {
-    error: [],      // 新增：无法访问
-    critical: [],
-    warning: [],
-    expired: [],    // 新增：已过期
-    active: []
+    error: [],      // 无法访问
+    expired: [],    // 已过期
+    critical: [],   // 紧急处理
+    warning: [],    // 即将到期
+    active: []      // 正常但需关注
   };
   
   certificates.forEach(cert => {
@@ -154,7 +154,7 @@ function buildSSLAlertContent(certificates) {
     if (group) {
       group.push({
         domain: cert.domain,
-        days: cert.daysRemaining,
+        days: cert.daysRemaining || 0,
         date: cert.validTo ? dayjs(cert.validTo).format('YYYY-MM-DD') : '未知',
         issuer: cert.issuer || '未知',
         error: cert.checkError
@@ -163,39 +163,50 @@ function buildSSLAlertContent(certificates) {
   });
   
   let content = '【SSL证书到期提醒】\n\n';
+  let hasContent = false;
   
+  // 无法访问的证书（最高优先级）
   if (groups.error.length > 0) {
     content += '❌ 无法访问：\n';
     groups.error.forEach(c => {
       content += `  • ${c.domain} - ${c.error || '连接失败'}\n`;
     });
     content += '\n';
+    hasContent = true;
   }
   
+  // 已过期的证书
   if (groups.expired.length > 0) {
     content += '⚫ 已过期：\n';
     groups.expired.forEach(c => {
-      content += `  • ${c.domain} - ${c.date} (已过期${Math.abs(c.days)}天)\n`;
+      const expiredDays = c.days < 0 ? Math.abs(c.days) : 0;
+      content += `  • ${c.domain} - ${c.date} (已过期${expiredDays}天)\n`;
     });
     content += '\n';
+    hasContent = true;
   }
   
+  // 紧急处理的证书
   if (groups.critical.length > 0) {
     content += '🔴 紧急处理：\n';
     groups.critical.forEach(c => {
       content += `  • ${c.domain} - ${c.date} (${c.days}天) - ${c.issuer}\n`;
     });
     content += '\n';
+    hasContent = true;
   }
   
+  // 即将到期的证书
   if (groups.warning.length > 0) {
     content += '🟡 即将到期：\n';
     groups.warning.forEach(c => {
       content += `  • ${c.domain} - ${c.date} (${c.days}天) - ${c.issuer}\n`;
     });
     content += '\n';
+    hasContent = true;
   }
   
+  // 正常但需关注的证书（限制显示数量）
   if (groups.active.length > 0) {
     content += '🟢 正常关注：\n';
     const limitedActive = groups.active.slice(0, 5);
@@ -205,12 +216,18 @@ function buildSSLAlertContent(certificates) {
     if (groups.active.length > 5) {
       content += `  • ... 还有 ${groups.active.length - 5} 个证书\n`;
     }
+    hasContent = true;
+  }
+  
+  // 如果没有任何内容，返回空字符串
+  if (!hasContent) {
+    return '';
   }
   
   return content;
 }
 
-// 检查并发送告警
+// 检查并发送告警 - 修复版
 async function checkAndSendAlerts() {
   logAlert('开始执行告警检查');
   
@@ -250,44 +267,58 @@ async function checkAndSendAlerts() {
           }
         }
         
-        // 检查是否需要发送SSL告警
+        // 检查是否需要发送SSL告警 - 修复查询逻辑
         if (config.alertTypes.includes('ssl') || config.alertTypes.includes('both')) {
           const sslExpiryDate = new Date();
           sslExpiryDate.setDate(sslExpiryDate.getDate() + (config.sslDaysBeforeExpiry || 14));
           
-          // 分别查询不同状态的证书
+          // 修复查询条件：分别处理不同状态的证书
           const expiringCertificates = await SSLCertificate.find({
             $or: [
-              // 即将到期的证书
+              // 即将到期的正常证书
               {
                 validTo: {
                   $gte: new Date(),
                   $lte: sslExpiryDate
                 },
-                status: { $in: ['critical', 'warning', 'active'] }
+                status: { $in: ['critical', 'warning', 'active'] },
+                accessible: true
               },
-              // 已过期的证书
+              // 已过期的证书（无论何时都要告警）
               {
-                validTo: { $lt: new Date() },
                 status: 'expired'
               },
-              // 访问失败的证书（总是告警）
+              // 访问失败的证书（无论何时都要告警）
               {
                 status: 'error'
               }
             ]
-          }).sort({ validTo: 1 });
+          }).sort({ 
+            // 修复排序：error状态的validTo可能为null
+            status: 1,  // 先按状态排序，error和expired优先
+            validTo: 1  // 再按到期时间排序
+          });
+          
+          logAlert(`查询到 ${expiringCertificates.length} 个需要告警的SSL证书`);
           
           if (expiringCertificates.length > 0) {
+            // 调试日志：输出查询到的证书状态
+            const statusCounts = {};
+            expiringCertificates.forEach(cert => {
+              statusCounts[cert.status] = (statusCounts[cert.status] || 0) + 1;
+            });
+            logAlert(`SSL证书状态分布: ${JSON.stringify(statusCounts)}`);
+            
             if (alertContent) alertContent += '\n\n';
-            alertContent += buildSSLAlertContent(expiringCertificates);
+            const sslContent = buildSSLAlertContent(expiringCertificates);
+            alertContent += sslContent;
             itemCount += expiringCertificates.length;
           }
         }
         
-        // 如果有内容需要发送
-        if (alertContent && itemCount > 0) {
-          logAlert(`${config.name} - 发现 ${itemCount} 个需要关注的项目`);
+        // 如果有内容需要发送（修复条件判断）
+        if (alertContent.trim() && itemCount > 0) {
+          logAlert(`${config.name} - 发现 ${itemCount} 个需要关注的项目，准备发送告警`);
           
           // 发送告警
           let result;
@@ -315,7 +346,7 @@ async function checkAndSendAlerts() {
           
           await config.save();
         } else {
-          logAlert(`${config.name} - 没有需要告警的项目`);
+          logAlert(`${config.name} - 没有需要告警的项目 (内容长度: ${alertContent.length}, 项目数: ${itemCount})`);
         }
         
       } catch (error) {
