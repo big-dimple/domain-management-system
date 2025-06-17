@@ -294,6 +294,7 @@ export const SSLPage = () => {
             <option value="warning">即将到期</option>
             <option value="critical">紧急</option>
             <option value="expired">已过期</option>
+            <option value="error">访问不通</option>
           </select>
           
           <button
