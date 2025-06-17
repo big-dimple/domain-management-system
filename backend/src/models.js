@@ -52,7 +52,8 @@ const sslCertificateSchema = new mongoose.Schema({
   cost: String,
   notes: String,
   isWildcard: { type: Boolean, default: false },
-  alternativeNames: [String]
+  alternativeNames: [String],
+  accessible: { type: Boolean, default: true }  // 新增字段：标记证书是否可访问
 }, { timestamps: true });
 
 // 扫描任务模型
