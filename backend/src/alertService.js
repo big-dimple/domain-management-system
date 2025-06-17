@@ -176,7 +176,7 @@ function buildSSLAlertContent(certificates) {
   if (groups.error.length > 0) {
     content += '### ❌ 无法访问\n';
     groups.error.forEach(c => {
-      content += `• \`${c.domain}\` - ${c.error || '连接失败'}\n`;
+      content += `• \`${c.domain}\` - ${c.error || '连接失败'}  \n`;
     });
     content += '\n';
     hasContent = true;
