@@ -868,15 +868,35 @@ router.post('/ssl/import', async (req, res) => {
         // 检查SSL证书信息
         const sslInfo = await checkSSLCertificate(domain);
         
-        // 保存到数据库
-        await SSLCertificate.findOneAndUpdate(
-          { domain },
-          {
-            ...sslInfo,
-            lastChecked: new Date()
-          },
-          { upsert: true }
-        );
+        // 统一处理保存逻辑
+        if (sslInfo.status === 'error') {
+          // 错误状态特殊处理
+          await SSLCertificate.findOneAndUpdate(
+            { domain },
+            {
+              domain,
+              lastChecked: new Date(),
+              status: 'error',
+              checkError: sslInfo.checkError,
+              accessible: false,
+              daysRemaining: -1,
+              validTo: null,
+              validFrom: null
+            },
+            { upsert: true }
+          );
+        } else {
+          // 正常状态保存
+          await SSLCertificate.findOneAndUpdate(
+            { domain },
+            {
+              ...sslInfo,
+              lastChecked: new Date(),
+              checkError: null
+            },
+            { upsert: true }
+          );
+        }
         
         results.success++;
       } catch (error) {
