@@ -213,7 +213,7 @@ async function batchScanDomains(taskId) {
   }
 }
 
-// 批量扫描SSL证书函数
+// 批量扫描SSL证书函数 - 修复版本
 async function batchScanSSLCertificates(taskId) {
   logSSL(`开始执行批量SSL证书扫描任务: ${taskId}`);
   
@@ -257,18 +257,16 @@ async function batchScanSSLCertificates(taskId) {
           
           const scanResult = await checkSSLCertificate(cert.domain);
           
-          // 检查是否是错误状态（无法访问）
+          // 直接保存扫描结果，参考单域名扫描逻辑
+          await SSLCertificate.findByIdAndUpdate(cert._id, {
+            ...scanResult,
+            lastChecked: new Date(),
+            checkError: scanResult.status === 'error' ? scanResult.checkError : null
+          });
+          
+          task.scannedItems = (task.scannedItems || 0) + 1;
+          
           if (scanResult.status === 'error') {
-            // 更新为错误状态
-            await SSLCertificate.findByIdAndUpdate(cert._id, {
-              lastChecked: new Date(),
-              status: 'error',
-              checkError: scanResult.checkError,
-              accessible: false,
-              daysRemaining: -1
-            });
-            
-            task.scannedItems = (task.scannedItems || 0) + 1;
             task.failureCount = (task.failureCount || 0) + 1;
             
             if (!task.errors) {
@@ -281,17 +279,7 @@ async function batchScanSSLCertificates(taskId) {
             
             logSSL(`SSL证书 ${cert.domain} 无法访问: ${scanResult.checkError}`, 'error');
           } else {
-            // 正常更新证书信息
-            await SSLCertificate.findByIdAndUpdate(cert._id, {
-              ...scanResult,
-              lastChecked: new Date(),
-              checkError: null,
-              accessible: true
-            });
-            
-            task.scannedItems = (task.scannedItems || 0) + 1;
             task.successCount = (task.successCount || 0) + 1;
-            
             logSSL(`SSL证书 ${cert.domain} 扫描成功，剩余${scanResult.daysRemaining}天`);
           }
           
