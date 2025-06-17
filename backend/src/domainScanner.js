@@ -7,7 +7,7 @@ const dayjs = require('dayjs');
 // 扫描日志
 const logScan = (message, level = 'info') => {
   const timestamp = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const logMessage = `[${timestamp}] [SCAN] [${level.toUpperCase()}] ${message}\n`;
+  const logMessage = `[${timestamp}] [SCAN] [${level.toUpperCase()}] ${message}  \n`;
   
   // 写入日志文件
   const logFile = path.join('/app/logs', `scan_${dayjs().format('YYYY-MM-DD')}.log`);
