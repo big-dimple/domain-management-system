@@ -19,6 +19,7 @@ const logSSL = (message, level = 'info') => {
 };
 
 // 检查SSL证书
+
 async function checkSSLCertificate(domain, port = 443) {
   return new Promise((resolve, reject) => {
     logSSL(`开始检查SSL证书: ${domain}:${port}`);
@@ -120,7 +121,7 @@ async function checkSSLCertificate(domain, port = 443) {
         
         const daysRemaining = Math.floor((validTo - now) / (1000 * 60 * 60 * 24));
         
-        // 判断状态
+        // 修复：先判断证书是否有效，再判断状态
         let status = 'active';
         if (daysRemaining < 0) {
           status = 'expired';
@@ -139,7 +140,7 @@ async function checkSSLCertificate(domain, port = 443) {
           daysRemaining,
           serialNumber: cert.serialNumber,
           fingerprint: cert.fingerprint,
-          status,
+          status, // 关键修复：确保正常证书的状态不会被覆盖
           isWildcard: cert.subject && cert.subject.CN && cert.subject.CN.startsWith('*.'),
           alternativeNames: cert.subjectaltname ? 
             cert.subjectaltname.split(', ').map(name => name.replace('DNS:', '')) : [domain],
@@ -155,7 +156,7 @@ async function checkSSLCertificate(domain, port = 443) {
         logSSL(`SSL证书解析失败 ${domain}: ${error.message}`, 'error');
         resolve({
           domain,
-          status: 'error',
+          status: 'error', // 确保错误状态
           accessible: false,
           checkError: `证书解析失败: ${error.message}`,
           daysRemaining: -1,
@@ -182,7 +183,7 @@ async function checkSSLCertificate(domain, port = 443) {
       
       const errorResult = {
         domain,
-        status: 'error',
+        status: 'error', // 确保错误状态
         accessible: false,
         checkError: errorMessage,
         daysRemaining: -1,
@@ -199,7 +200,7 @@ async function checkSSLCertificate(domain, port = 443) {
       
       const timeoutResult = {
         domain,
-        status: 'error',
+        status: 'error', // 确保错误状态
         accessible: false,
         checkError: 'SSL连接超时',
         daysRemaining: -1,
