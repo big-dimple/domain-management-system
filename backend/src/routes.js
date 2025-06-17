@@ -236,12 +236,33 @@ async function batchScanSSLCertificates(taskId) {
           
           const scanResult = await checkSSLCertificate(cert.domain);
           
-          // 直接保存扫描结果，参考单域名扫描逻辑
-          await SSLCertificate.findByIdAndUpdate(cert._id, {
-            ...scanResult,
-            lastChecked: new Date(),
-            checkError: scanResult.status === 'error' ? scanResult.checkError : null
-          });
+          // 参考导入txt的逻辑：对error状态特殊处理
+          if (scanResult.status === 'error') {
+            // 错误状态特殊处理，确保不会有误导性的过期日期
+            await SSLCertificate.findByIdAndUpdate(cert._id, {
+              domain: cert.domain,
+              lastChecked: new Date(),
+              status: 'error',
+              checkError: scanResult.checkError,
+              accessible: false,
+              daysRemaining: -1,
+              validTo: null,
+              validFrom: null,
+              issuer: null,
+              subject: cert.domain,
+              serialNumber: null,
+              fingerprint: null,
+              isWildcard: false,
+              alternativeNames: [cert.domain]
+            });
+          } else {
+            // 正常状态保存完整扫描结果
+            await SSLCertificate.findByIdAndUpdate(cert._id, {
+              ...scanResult,
+              lastChecked: new Date(),
+              checkError: null
+            });
+          }
           
           task.scannedItems = (task.scannedItems || 0) + 1;
           
