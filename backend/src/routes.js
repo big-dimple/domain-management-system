@@ -90,66 +90,45 @@ async function batchScanDomains(taskId) {
     const limit = pLimit(batchSize);
     logScan(`使用并发数: ${batchSize}`);
     
-    // 批量扫描
-    const scanPromises = certificates.map(cert => 
+    // 批量扫描域名
+    const scanPromises = domains.map(domain => 
       limit(async () => {
         try {
-          logSSL(`开始扫描SSL证书: ${cert.domain}`);
+          logScan(`开始扫描域名: ${domain.domainName}`);
           
-          const scanResult = await checkSSLCertificate(cert.domain);
+          // 调用域名扫描函数，不是SSL扫描
+          const scanResult = await scanDomainExpiry(domain.domainName);
           
-          // 检查是否是错误状态（无法访问）
-          if (scanResult.status === 'error') {
-            // 更新为错误状态
-            await SSLCertificate.findByIdAndUpdate(cert._id, {
-              lastChecked: new Date(),
-              status: 'error',
-              checkError: scanResult.checkError,
-              accessible: false,
-              daysRemaining: -1
-            });
-            
-            task.scannedItems = (task.scannedItems || 0) + 1;
-            task.failureCount = (task.failureCount || 0) + 1;
-            
-            if (!task.errors) {
-              task.errors = [];
-            }
-            task.errors.push({
-              item: cert.domain,
-              error: scanResult.checkError
-            });
-            
-            logSSL(`SSL证书 ${cert.domain} 无法访问: ${scanResult.checkError}`, 'error');
-          } else {
-            // 正常更新证书信息
-            await SSLCertificate.findByIdAndUpdate(cert._id, {
-              ...scanResult,
-              lastChecked: new Date(),
-              checkError: null,
-              accessible: true
-            });
-            
-            task.scannedItems = (task.scannedItems || 0) + 1;
-            task.successCount = (task.successCount || 0) + 1;
-            
-            logSSL(`SSL证书 ${cert.domain} 扫描成功，剩余${scanResult.daysRemaining}天`);
-          }
+          // 更新域名信息
+          await Domain.findByIdAndUpdate(domain._id, {
+            expiryDate: scanResult.expiryDate,
+            registrar: scanResult.registrar,
+            nameServers: scanResult.nameServers,
+            lastScanned: new Date(),
+            scanStatus: 'success',
+            scanError: null,
+            autoScanned: true
+          });
           
-          // 每扫描5个证书保存一次进度
+          task.scannedItems = (task.scannedItems || 0) + 1;
+          task.successCount = (task.successCount || 0) + 1;
+          
+          logScan(`域名 ${domain.domainName} 扫描成功`);
+          
+          // 每扫描5个域名保存一次进度
           if (task.scannedItems % 5 === 0) {
             await task.save();
           }
           
         } catch (error) {
-          logSSL(`SSL证书 ${cert.domain} 扫描异常: ${error.message}`, 'error');
+          logScan(`域名 ${domain.domainName} 扫描失败: ${error.message}`, 'error');
           
-          // 更新证书扫描状态为错误
-          await SSLCertificate.findByIdAndUpdate(cert._id, {
-            lastChecked: new Date(),
-            status: 'error',
-            checkError: error.message,
-            accessible: false
+          // 对于扫描失败的域名，只更新扫描状态，不修改到期日期
+          await Domain.findByIdAndUpdate(domain._id, {
+            lastScanned: new Date(),
+            scanStatus: 'failed',
+            scanError: error.message
+            // 注意：不更新 expiryDate，保持原有值
           });
           
           task.scannedItems = (task.scannedItems || 0) + 1;
@@ -159,11 +138,11 @@ async function batchScanDomains(taskId) {
             task.errors = [];
           }
           task.errors.push({
-            item: cert.domain,
+            item: domain.domainName,
             error: error.message
           });
           
-          // 每处理5个证书保存一次进度
+          // 每处理5个域名保存一次进度
           if (task.scannedItems % 5 === 0) {
             await task.save();
           }
