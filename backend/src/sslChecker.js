@@ -8,7 +8,7 @@ const dayjs = require('dayjs');
 // SSL检查日志
 const logSSL = (message, level = 'info') => {
   const timestamp = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const logMessage = `[${timestamp}] [SSL] [${level.toUpperCase()}] ${message}\n`;
+  const logMessage = `[${timestamp}] [SSL] [${level.toUpperCase()}] ${message}  \n`;
   
   // 写入日志文件
   const logFile = path.join('/app/logs', `ssl_${dayjs().format('YYYY-MM-DD')}.log`);
