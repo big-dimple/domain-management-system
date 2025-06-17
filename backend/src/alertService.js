@@ -117,7 +117,7 @@ function buildDomainAlertContent(domains) {
   if (groups['紧急续费'].length > 0) {
     content += '### 🔴 紧急续费\n';
     groups['紧急续费'].forEach(d => {
-      content += `• <font color="darkgreen">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
+      content += `• <font color="green">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
     });
     content += '\n';
   }
@@ -125,7 +125,7 @@ function buildDomainAlertContent(domains) {
   if (groups['建议续费'].length > 0) {
     content += '### 🟢 建议续费\n';
     groups['建议续费'].forEach(d => {
-      content += `• <font color="darkgreen">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
+      content += `• <font color="green">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
     });
     content += '\n';
   }
@@ -133,7 +133,7 @@ function buildDomainAlertContent(domains) {
   if (groups['请示领导'].length > 0) {
     content += '### 🟡 请示领导\n';
     groups['请示领导'].forEach(d => {
-      content += `• <font color="darkgreen">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
+      content += `• <font color="green">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
     });
     content += '\n';
   }
@@ -141,7 +141,7 @@ function buildDomainAlertContent(domains) {
   if (groups['保持续费'].length > 0) {
     content += '### 🔵 保持续费\n';
     groups['保持续费'].forEach(d => {
-      content += `• <font color="darkgreen">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
+      content += `• <font color="green">**${d.name}**</font> - <font color="red">**${d.days}天**</font>  \n`;
     });
   }
   
@@ -176,7 +176,7 @@ function buildSSLAlertContent(certificates) {
   if (groups.error.length > 0) {
     content += '### ❌ 无法访问\n';
     groups.error.forEach(c => {
-      content += `• <font color="darkgreen">**${c.domain}**</font> - ${c.error || '连接失败'}  \n`;
+      content += `• <font color="green">**${c.domain}**</font> - ${c.error || '连接失败'}  \n`;
     });
     content += '\n';
     hasContent = true;
@@ -187,7 +187,7 @@ function buildSSLAlertContent(certificates) {
     content += '### ⚫ 已过期\n';
     groups.expired.forEach(c => {
       const expiredDays = c.days < 0 ? Math.abs(c.days) : 0;
-      content += `• <font color="darkgreen">**${c.domain}**</font> - <font color="red">**已过期${expiredDays}天**</font>  \n`;
+      content += `• <font color="green">**${c.domain}**</font> - <font color="red">**已过期${expiredDays}天**</font>  \n`;
     });
     content += '\n';
     hasContent = true;
@@ -197,7 +197,7 @@ function buildSSLAlertContent(certificates) {
   if (groups.critical.length > 0) {
     content += '### 🔴 紧急处理\n';
     groups.critical.forEach(c => {
-      content += `• <font color="darkgreen">**${c.domain}**</font> - <font color="red">**${c.days}天**</font>  \n`;
+      content += `• <font color="green">**${c.domain}**</font> - <font color="red">**${c.days}天**</font>  \n`;
     });
     content += '\n';
     hasContent = true;
@@ -207,7 +207,7 @@ function buildSSLAlertContent(certificates) {
   if (groups.warning.length > 0) {
     content += '### 🟡 即将到期\n';
     groups.warning.forEach(c => {
-      content += `• <font color="darkgreen">**${c.domain}**</font> - <font color="red">**${c.days}天**</font>  \n`;
+      content += `• <font color="green">**${c.domain}**</font> - <font color="red">**${c.days}天**</font>  \n`;
     });
     content += '\n';
     hasContent = true;
@@ -372,9 +372,9 @@ async function checkAndSendAlerts() {
 async function testAlertWebhook(type, webhook) {
   const testContent = '【测试消息】\n\n这是一条测试消息，用于验证告警通道是否正常。\n\n' +
     '域名示例：\n' +
-    '  • <font color="darkgreen">**test-domain.com**</font> - 2024-06-15 (15天)\n\n' +
+    '  • <font color="green">**test-domain.com**</font> - 2024-06-15 (15天)\n\n' +
     'SSL证书示例：\n' +
-    '  • <font color="darkgreen">**test-ssl.com**</font> - 2024-06-20 (20天)\n\n' +
+    '  • <font color="green">**test-ssl.com**</font> - 2024-06-20 (20天)\n\n' +
     '如果您收到此消息，说明告警通道配置正确。';
   
   try {
