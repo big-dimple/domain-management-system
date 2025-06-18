@@ -182,47 +182,4 @@ const systemConfigSchema = new mongoose.Schema({
   updatedBy: String
 }, { timestamps: true });
 
-
-// 用户模型 
-const userSchema = new mongoose.Schema({
-  username: { 
-    type: String, 
-    required: true, 
-    unique: true,
-    trim: true,
-    minlength: 3,
-    maxlength: 20
-  },
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true,
-    lowercase: true,
-    match: [/^\S+@\S+\.\S+$/, '邮箱格式不正确']
-  },
-  password: { 
-    type: String, 
-    required: true,
-    minlength: 8
-  },
-  role: { 
-    type: String, 
-    enum: ['user', 'admin'], 
-    default: 'user' 
-  },
-  isActive: { 
-    type: Boolean, 
-    default: true 
-  },
-  lastLoginAt: Date,
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
-  }
-}, { 
-  timestamps: true 
-});
-
-// 添加到module.exports中
-module.exports.User = mongoose.model('User', userSchema);
 module.exports.SystemConfig = mongoose.model('SystemConfig', systemConfigSchema);
