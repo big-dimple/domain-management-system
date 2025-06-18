@@ -152,6 +152,7 @@ export const HomePage = () => {
   const clearFilter = (key) => {
     setFilters(prev => ({ ...prev, [key]: '' }));
     setCurrentPage(1);
+    setFilterDropdowns(prev => ({ ...prev, [key]: false })); // 关闭下拉菜单
   };
 
   // 清除所有筛选
