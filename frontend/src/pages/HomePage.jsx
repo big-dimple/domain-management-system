@@ -20,6 +20,8 @@ export const HomePage = () => {
   const [stats, setStats] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(20); // 新增：每页条数
+  const [totalCount, setTotalCount] = useState(0); // 新增：总条数
   const [importResult, setImportResult] = useState(null);
   const [scanTask, setScanTask] = useState(null);
   
@@ -48,7 +50,7 @@ export const HomePage = () => {
     try {
       const params = {
         page: currentPage,
-        limit: 20,
+        limit: pageSize,
         search: searchTerm
       };
       
@@ -62,6 +64,7 @@ export const HomePage = () => {
       const res = await axios.get('/api/domains', { params });
       setDomains(res.data.data);
       setTotalPages(res.data.pagination.pages);
+      setTotalCount(res.data.pagination.total); // 设置总条数
     } catch (error) {
       toast.error('获取域名列表失败');
     }
@@ -139,7 +142,7 @@ export const HomePage = () => {
   useEffect(() => {
     fetchDomains();
     fetchStats();
-  }, [currentPage, searchTerm, filters]);
+  }, [currentPage, pageSize, searchTerm, filters]); // 添加pageSize依赖
 
   // 处理筛选变化
   const handleFilterChange = (key, value) => {
@@ -164,6 +167,12 @@ export const HomePage = () => {
       domainType: ''
     });
     setCurrentPage(1);
+  };
+
+  // 处理每页条数变化
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(1); // 重置到第一页
   };
 
   // 判断是否有筛选
@@ -365,6 +374,78 @@ export const HomePage = () => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 渲染分页组件 - 优化版
+  const renderPagination = () => {
+    if (totalCount === 0) return null;
+
+    const startIndex = (currentPage - 1) * pageSize + 1;
+    const endIndex = Math.min(currentPage * pageSize, totalCount);
+
+    return (
+      <div className="px-4 py-3 bg-gray-50 flex items-center justify-between border-t">
+        {/* 左侧：显示条数信息 */}
+        <div className="flex items-center text-sm text-gray-700">
+          <span>共 {totalCount} 条，显示第 {startIndex}-{endIndex} 条</span>
+        </div>
+
+        {/* 中间：每页条数选择 */}
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-700">每页显示</span>
+          <select
+            value={pageSize}
+            onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+            className="border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value={10}>10 条</option>
+            <option value={20}>20 条</option>
+            <option value={50}>50 条</option>
+            <option value={100}>100 条</option>
+          </select>
+        </div>
+
+        {/* 右侧：页码导航 */}
+        {totalPages > 1 && (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white transition-colors text-sm"
+            >
+              首页
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white transition-colors text-sm"
+            >
+              上一页
+            </button>
+            
+            {/* 页码显示 */}
+            <span className="px-3 py-1 text-sm text-gray-700">
+              第 {currentPage} 页，共 {totalPages} 页
+            </span>
+            
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white transition-colors text-sm"
+            >
+              下一页
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white transition-colors text-sm"
+            >
+              末页
+            </button>
           </div>
         )}
       </div>
@@ -725,28 +806,8 @@ export const HomePage = () => {
           </tbody>
         </table>
         
-        {/* 分页 */}
-        {totalPages > 1 && (
-          <div className="px-4 py-3 bg-gray-50 flex justify-center items-center space-x-2 border-t">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white transition-colors"
-            >
-              上一页
-            </button>
-            <span className="px-3 py-1 text-sm">
-              第 {currentPage} 页，共 {totalPages} 页
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white transition-colors"
-            >
-              下一页
-            </button>
-          </div>
-        )}
+        {/* 优化后的分页组件 */}
+        {renderPagination()}
       </div>
 
       {/* 表单弹窗 */}
