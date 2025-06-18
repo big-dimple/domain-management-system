@@ -230,100 +230,138 @@ export const AlertsPage = () => {
 
         {/* 标签页内容 */}
         <div className="p-6">
-          {activeTab === 'overview' && (
-            <div>
-              {alertConfigs.length === 0 ? (
-                <div className="text-center py-12">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500 mb-4">暂无告警配置</p>
-                  <button
-                    onClick={() => setShowAlertForm(true)}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    立即添加
-                  </button>
+{activeTab === 'overview' && (
+  <div>
+    {alertConfigs.length === 0 ? (
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+        <p className="text-gray-500 mb-4">暂无告警配置</p>
+        <button
+          onClick={() => setShowAlertForm(true)}
+          className="text-blue-500 hover:text-blue-700"
+        >
+          立即添加
+        </button>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {alertConfigs.map(config => {
+          const typeDisplay = getAlertTypeDisplay(config.type);
+          return (
+            <div 
+              key={config._id} 
+              className={`relative border rounded-lg p-4 transition-all ${
+                config.enabled 
+                  ? 'border-gray-200 bg-white hover:shadow-md' 
+                  : 'border-gray-200 bg-gray-50 opacity-60'
+              }`}
+            >
+              {/* 状态标记 - 更醒目 */}
+              <div className={`absolute top-2 right-2 w-3 h-3 rounded-full ${
+                config.enabled ? 'bg-green-500' : 'bg-gray-400'
+              }`} />
+              
+              {/* 头部信息 */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-900 text-lg">{config.name}</h4>
+                  <span className={`px-2 py-0.5 rounded text-xs ${typeDisplay.bg} ${typeDisplay.color}`}>
+                    {typeDisplay.text}
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {alertConfigs.map(config => {
-                    const typeDisplay = getAlertTypeDisplay(config.type);
-                    return (
-                      <div key={config._id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-medium text-gray-900">{config.name}</h4>
-                              <span className={`px-2 py-1 rounded text-xs ${typeDisplay.bg} ${typeDisplay.color}`}>
-                                {typeDisplay.text}
-                              </span>
-                              {config.enabled ? (
-                                <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                                  已启用
-                                </span>
-                              ) : (
-                                <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
-                                  已禁用
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="text-sm text-gray-600 space-y-1">
-                              <p>告警内容：{config.alertTypes.includes('both') ? '域名 + SSL证书' : config.alertTypes[0] === 'domain' ? '仅域名' : '仅SSL证书'}</p>
-                              <p>域名提前告警：{config.domainDaysBeforeExpiry}天</p>
-                              <p>SSL提前告警：{config.sslDaysBeforeExpiry}天</p>
-                              {config.lastAlertTime && (
-                                <p>最后告警：{dayjs(config.lastAlertTime).format('YYYY-MM-DD HH:mm')}</p>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2 ml-4">
-                            <button
-                              onClick={() => { setEditingConfig(config); setShowAlertForm(true); }}
-                              className="text-blue-500 hover:text-blue-700 text-sm"
-                            >
-                              编辑
-                            </button>
-                            <button
-                              onClick={() => handleDeleteConfig(config._id)}
-                              className="text-red-500 hover:text-red-700 text-sm"
-                            >
-                              删除
-                            </button>
-                          </div>
+                
+                {/* 状态标签 */}
+                <div className="flex items-center gap-2">
+                  {config.enabled ? (
+                    <span className="inline-flex items-center text-xs text-green-700">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      运行中
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-xs text-gray-500">
+                      <XCircle className="w-3 h-3 mr-1" />
+                      已禁用
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* 配置信息 - 更紧凑 */}
+              <div className="space-y-2 text-sm text-gray-600 mb-3">
+                <div className="flex items-center">
+                  <span className="text-gray-500 w-16">告警内容</span>
+                  <span className="font-medium">
+                    {config.alertTypes.includes('both') ? '域名 + SSL' : 
+                     config.alertTypes[0] === 'domain' ? '仅域名' : '仅SSL'}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-500 w-16">域名提醒</span>
+                  <span>{config.domainDaysBeforeExpiry}天</span>
+                </div>
+                <div className="flex items-center">
+                  <span className="text-gray-500 w-16">SSL提醒</span>
+                  <span>{config.sslDaysBeforeExpiry}天</span>
+                </div>
+              </div>
+              
+              {/* 最后告警时间 - 简化显示 */}
+              {config.lastAlertTime && (
+                <div className="text-xs text-gray-500 border-t pt-2">
+                  最后告警：{dayjs(config.lastAlertTime).format('MM-DD HH:mm')}
+                </div>
+              )}
+              
+              {/* 操作按钮 */}
+              <div className="flex justify-end gap-2 mt-3">
+                <button
+                  onClick={() => { setEditingConfig(config); setShowAlertForm(true); }}
+                  className="text-blue-500 hover:text-blue-700 text-sm"
+                >
+                  编辑
+                </button>
+                <button
+                  onClick={() => handleDeleteConfig(config._id)}
+                  className="text-red-500 hover:text-red-700 text-sm"
+                >
+                  删除
+                </button>
+              </div>
+              
+              {/* 告警历史 - 改为悬浮展示 */}
+              {config.alertHistory && config.alertHistory.length > 0 && (
+                <div className="group relative">
+                  <button className="text-xs text-gray-400 hover:text-gray-600 mt-2">
+                    历史记录 ({config.alertHistory.length})
+                  </button>
+                  
+                  {/* 悬浮面板 */}
+                  <div className="invisible group-hover:visible absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">最近告警记录</h5>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {config.alertHistory.slice(-5).reverse().map((history, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">
+                            {dayjs(history.sentAt).format('MM-DD HH:mm')}
+                          </span>
+                          {history.success ? (
+                            <span className="text-green-600">成功</span>
+                          ) : (
+                            <span className="text-red-600">失败</span>
+                          )}
                         </div>
-                        
-                        {/* 告警历史 */}
-                        {config.alertHistory && config.alertHistory.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-gray-200">
-                            <h5 className="text-sm font-medium text-gray-700 mb-2">最近告警记录</h5>
-                            <div className="space-y-1">
-                              {config.alertHistory.slice(-3).reverse().map((history, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-600">
-                                    {dayjs(history.sentAt).format('MM-DD HH:mm')}
-                                  </span>
-                                  {history.success ? (
-                                    <span className="text-green-600">
-                                      成功发送 {history.itemCount} 个提醒
-                                    </span>
-                                  ) : (
-                                    <span className="text-red-600">
-                                      发送失败: {history.error}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          )}
+          );
+        })}
+      </div>
+    )}
+  </div>
+)}
 
           {activeTab === 'rules' && (
             <div className="space-y-4">
