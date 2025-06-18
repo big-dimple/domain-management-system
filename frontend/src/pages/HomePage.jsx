@@ -304,62 +304,71 @@ export const HomePage = () => {
   };
 
   // 修复后的筛选下拉组件
-  const FilterDropdown = ({ columnKey, title, options, value }) => (
-    <div 
-      className="relative inline-block ml-1" 
-      ref={el => filterRefs.current[columnKey] = el}
-    >
-      <button
-        onClick={() => setFilterDropdowns(prev => ({ 
-          ...prev, 
-          [columnKey]: !prev[columnKey] 
-        }))}
-        className={`p-1 rounded hover:bg-gray-100 transition-colors ${value ? 'text-blue-600' : 'text-gray-400'}`}
-      >
-        <Filter className="w-3 h-3" />
-      </button>
+  const FilterDropdown = ({ columnKey, title, options, value }) => {
+    const [dropdownPosition, setDropdownPosition] = useState('bottom');
+    
+    const handleToggleDropdown = (e) => {
+      // 计算下拉菜单位置
+      const rect = e.target.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropdownPosition(spaceBelow < 200 ? 'top' : 'bottom');
       
-      {filterDropdowns[columnKey] && (
-        <div 
-          className="absolute z-50 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200"
-          style={{
-            // 确保下拉菜单有足够的最小高度，不会被数据行数影响
-            minHeight: '180px',
-            // 智能定位：如果空间不够就向上展开
-            top: window.innerHeight - event?.target?.getBoundingClientRect().bottom < 200 ? 'auto' : '100%',
-            bottom: window.innerHeight - event?.target?.getBoundingClientRect().bottom < 200 ? '100%' : 'auto'
-          }}
+      setFilterDropdowns(prev => ({ 
+        ...prev, 
+        [columnKey]: !prev[columnKey] 
+      }));
+    };
+
+    return (
+      <div 
+        className="relative inline-block ml-1" 
+        ref={el => filterRefs.current[columnKey] = el}
+      >
+        <button
+          onClick={handleToggleDropdown}
+          className={`p-1 rounded hover:bg-gray-100 transition-colors ${value ? 'text-blue-600' : 'text-gray-400'}`}
         >
-          <div className="p-2">
-            <div className="text-xs font-medium text-gray-700 mb-2">{title}</div>
-            <div className="max-h-32 overflow-y-auto">
-              {options.map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => handleFilterChange(columnKey, option.value)}
-                  className={`block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 transition-colors ${
-                    value === option.value ? 'bg-blue-50 text-blue-600' : ''
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            {value && (
-              <div className="border-t border-gray-200 mt-2 pt-2">
-                <button
-                  onClick={() => clearFilter(columnKey)}
-                  className="block w-full text-left px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-                >
-                  清除筛选
-                </button>
+          <Filter className="w-3 h-3" />
+        </button>
+        
+        {filterDropdowns[columnKey] && (
+          <div 
+            className={`absolute z-50 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 ${
+              dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full'
+            }`}
+            style={{ minHeight: '180px' }}
+          >
+            <div className="p-2">
+              <div className="text-xs font-medium text-gray-700 mb-2">{title}</div>
+              <div className="max-h-32 overflow-y-auto">
+                {options.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleFilterChange(columnKey, option.value)}
+                    className={`block w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-100 transition-colors ${
+                      value === option.value ? 'bg-blue-50 text-blue-600' : ''
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
-            )}
+              {value && (
+                <div className="border-t border-gray-200 mt-2 pt-2">
+                  <button
+                    onClick={() => clearFilter(columnKey)}
+                    className="block w-full text-left px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                  >
+                    清除筛选
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="p-6">
