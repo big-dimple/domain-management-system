@@ -85,10 +85,10 @@ async function batchScanDomains(taskId) {
       return;
     }
     
-    // 创建并发限制
-    const batchSize = parseInt(process.env.SCAN_BATCH_SIZE) || 5;
+    // 创建并发限制 - 降低默认并发数以避免whois服务器压力
+    const batchSize = parseInt(process.env.SCAN_BATCH_SIZE) || 3;
     const limit = pLimit(batchSize);
-    logScan(`使用并发数: ${batchSize}`);
+    logScan(`使用域名扫描并发数: ${batchSize}`);
     
     // 批量扫描域名
     const scanPromises = domains.map(domain => 
