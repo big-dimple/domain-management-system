@@ -730,8 +730,15 @@ router.post('/domains/import', upload.single('file'), async (req, res) => {
           domainData.businessUsage = values[fieldMap.businessUsage].trim();
         }
         
-        if (fieldMap.hasICP !== undefined && values[fieldMap.hasICP]) {
-          domainData.icpStatus = values[fieldMap.hasICP].trim();
+        if (fieldMap.hasICP !== undefined) {
+          const icpValue = values[fieldMap.hasICP] ? values[fieldMap.hasICP].trim() : '';
+          // 支持多种ICP输入格式：是/否、有/无、具体ICP号码
+          if (icpValue === '是' || icpValue === '有' || 
+              (icpValue && icpValue !== '否' && icpValue !== '无' && icpValue !== '')) {
+            domainData.hasICP = true;
+          } else {
+            domainData.hasICP = false;
+          }
         }
         
         if (fieldMap.renewalPrice !== undefined && values[fieldMap.renewalPrice]) {
